@@ -154,7 +154,7 @@ const HMAP={
 
 function detMap(hdrs){const m={};for(const[std,ps]of Object.entries(HMAP)){for(const h of hdrs){if(U.match(h,ps)){m[std]=h;break;}}}return m;}
 function pStat(v){if(!v)return'';const s=String(v).toUpperCase();return s.includes('LAYAK')?'LAYAK':'';}
-function pDet(v){if(!v)return'';const s=String(v);return s.toLowerCase().includes('silahkan')?s.replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim():'';}
+function pDet(v){if(!v)return'';const s=String(v);const lower=s.toLowerCase();if(!lower.includes('silahkan'))return'';if(lower.includes('mohon maaf')||lower.includes('tidak sesuai')||lower.includes('kode:')||lower.includes('data yang tidak sesuai'))return'';return s.replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();}
 function pKat(v){if(!v)return'';return String(v).trim().toUpperCase()==='JMO'?'JMO':'';}
 function pSal(v){if(!v)return'';const n=U.parseN(v);return n>=1e6?U.fmtN(n):'';}
 function xform(row,mapping){const r={};for(const[std,src]of Object.entries(mapping)){let v=row[src];switch(std){case'STATUS LASIK':r[std]=pStat(v);break;case'DETAIL LASIK':r[std]=pDet(v);break;case'KATEGORI':r[std]=pKat(v);break;case'SALDO LASIK':r[std]=pSal(v);break;default:r[std]=v!=null?String(v).trim():'';}}return r;}
