@@ -3,572 +3,507 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Dashboard Data LASIK Filter</title>
+<meta name="theme-color" content="#0f172a">
+<title>LASIK Data Manager</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
-  :root {
-    --accent: #4361ee;
-    --accent-light: #4895ef;
-    --bg-primary: #f8f9fa;
-    --bg-secondary: #ffffff;
-    --bg-tertiary: #e9ecef;
-    --bg-hover: #f1f3f5;
-    --text-primary: #1a1a2e;
-    --text-secondary: #6c757d;
-    --border: #dee2e6;
-    --success: #198754;
-    --danger: #dc3545;
-    --warning: #f59e0b;
-    --shadow: 0 2px 12px rgba(0,0,0,0.08);
-    --shadow-lg: 0 8px 30px rgba(0,0,0,0.12);
-    --radius: 12px;
-    --radius-sm: 8px;
-  }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-    background: var(--bg-primary);
-    color: var(--text-primary);
-    min-height: 100vh;
-    -webkit-font-smoothing: antialiased;
-  }
-  #app { max-width: 1400px; margin: 0 auto; padding: 16px; }
-
-  .header { text-align: center; margin-bottom: 20px; padding: 16px; background: var(--bg-secondary); border-radius: var(--radius); box-shadow: var(--shadow); }
-  .header h1 { font-size: 1.5rem; color: var(--accent); margin-bottom: 4px; }
-  .subtitle { font-size: 0.8rem; color: var(--text-secondary); }
-
-  .tabs { display: flex; gap: 8px; margin-bottom: 16px; justify-content: center; }
-  .tab-btn {
-    padding: 12px 24px; border: none; border-radius: var(--radius);
-    background: var(--bg-tertiary); color: var(--text-secondary);
-    font-weight: 600; cursor: pointer; transition: all 0.2s; font-size: 0.9rem;
-    position: relative; overflow: hidden;
-  }
-  .tab-btn.active { background: var(--accent); color: white; box-shadow: 0 4px 15px rgba(67,97,238,0.3); }
-  .tab-btn:hover:not(.active) { background: var(--border); }
-  .badge { background: rgba(255,255,255,0.25); padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; margin-left: 6px; }
-
-  .search-bar { display: flex; gap: 8px; margin-bottom: 16px; }
-  .search-bar input {
-    flex: 1; padding: 14px 18px; border: 2px solid var(--border); border-radius: var(--radius);
-    font-size: 1rem; background: var(--bg-secondary); color: var(--text-primary); transition: border-color 0.2s;
-  }
-  .search-bar input:focus { outline: none; border-color: var(--accent); }
-  .btn-clear { padding: 12px 16px; border: none; border-radius: var(--radius); background: var(--bg-tertiary); cursor: pointer; font-size: 1.1rem; transition: background 0.2s; }
-  .btn-clear:hover { background: var(--border); }
-
-  .stats-row { display: flex; gap: 12px; margin-bottom: 16px; justify-content: center; flex-wrap: wrap; }
-  .stat-box {
-    background: var(--bg-secondary); padding: 14px 20px; border-radius: var(--radius);
-    text-align: center; box-shadow: var(--shadow); min-width: 100px; flex: 1; max-width: 160px;
-    border-top: 3px solid var(--accent);
-  }
-  .stat-num { font-size: 1.4rem; font-weight: 700; color: var(--accent); }
-  .stat-label { font-size: 0.72rem; color: var(--text-secondary); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
-
-  .upload-section { display: flex; gap: 10px; margin-bottom: 16px; justify-content: center; flex-wrap: wrap; }
-  .upload-btn {
-    padding: 12px 22px; background: var(--accent); color: white; border-radius: var(--radius);
-    cursor: pointer; font-weight: 600; font-size: 0.88rem; display: inline-flex; align-items: center; gap: 6px;
-    transition: all 0.2s; box-shadow: 0 4px 15px rgba(67,97,238,0.25);
-  }
-  .upload-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(67,97,238,0.35); }
-  .upload-btn input { display: none; }
-  .btn-danger {
-    padding: 12px 22px; background: var(--danger); color: white; border: none; border-radius: var(--radius);
-    cursor: pointer; font-weight: 600; font-size: 0.88rem; display: inline-flex; align-items: center; gap: 6px;
-    transition: all 0.2s;
-  }
-  .btn-danger:hover { background: #c82333; }
-  .btn-copy-all {
-    padding: 8px 14px; background: var(--accent); color: white; border: none; border-radius: var(--radius-sm);
-    cursor: pointer; font-size: 0.78rem; font-weight: 600; transition: all 0.2s;
-  }
-  .btn-copy-all:hover { background: var(--accent-light); }
-
-  .table-container { display: none; animation: fadeIn 0.3s ease; }
-  .table-container.active { display: block; }
-  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-  .table-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding: 0 4px; }
-  .table-header h3 { font-size: 1rem; margin: 0; color: var(--text-primary); }
-  .table-scroll { overflow-x: auto; border-radius: var(--radius); background: var(--bg-secondary); box-shadow: var(--shadow); }
-  table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
-  th {
-    background: var(--accent); color: white; padding: 12px 10px; text-align: left;
-    font-weight: 600; white-space: nowrap; position: sticky; top: 0; z-index: 2;
-    font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.3px;
-  }
-  th:first-child { border-radius: var(--radius) 0 0 0; }
-  th:last-child { border-radius: 0 var(--radius) 0 0; }
-  td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text-primary); vertical-align: middle; }
-  tr:hover td { background: var(--bg-hover); }
-  tr:nth-child(even) td { background: rgba(67,97,238,0.03); }
-  tr:nth-child(even):hover td { background: var(--bg-hover); }
-  td:first-child { font-weight: 600; color: var(--text-secondary); text-align: center; }
-
-  .btn-copy {
-    padding: 5px 10px; background: var(--accent); color: white; border: none;
-    border-radius: var(--radius-sm); cursor: pointer; font-size: 0.7rem; font-weight: 600;
-    transition: all 0.2s; white-space: nowrap;
-  }
-  .btn-copy:hover { background: var(--accent-light); }
-  .btn-copy-col {
-    padding: 2px 6px; background: rgba(255,255,255,0.2); color: white; border: none;
-    border-radius: 4px; cursor: pointer; font-size: 0.65rem; margin-left: 4px;
-    transition: background 0.2s;
-  }
-  .btn-copy-col:hover { background: rgba(255,255,255,0.4); }
-
-  .saldo-cell { font-weight: 700; color: var(--success); white-space: nowrap; }
-  .status-layak { color: var(--success); font-weight: 600; }
-  .status-jmo { color: var(--accent); font-weight: 600; }
-  .detail-text { max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-  .empty-state { text-align: center; padding: 50px 20px; color: var(--text-secondary); font-size: 0.95rem; display: none; background: var(--bg-secondary); border-radius: var(--radius); }
-
-  .toast {
-    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px);
-    background: var(--success); color: white; padding: 14px 28px; border-radius: var(--radius);
-    font-weight: 600; font-size: 0.9rem; opacity: 0; transition: all 0.35s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-    z-index: 1000; box-shadow: var(--shadow-lg); pointer-events: none;
-  }
-  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-
-  @media (max-width: 768px) {
-    #app { padding: 10px; }
-    .header h1 { font-size: 1.15rem; }
-    .tab-btn { padding: 10px 16px; font-size: 0.82rem; }
-    .stat-box { padding: 10px 12px; min-width: 80px; }
-    .stat-num { font-size: 1.15rem; }
-    table { font-size: 0.68rem; }
-    th, td { padding: 7px 5px; }
-    .detail-text { max-width: 100px; }
-    .search-bar input { padding: 12px 14px; font-size: 0.9rem; }
-    .upload-btn, .btn-danger { padding: 10px 16px; font-size: 0.8rem; }
-  }
-
-  ::-webkit-scrollbar { width: 6px; height: 6px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-  ::-webkit-scrollbar-thumb:hover { background: var(--text-secondary); }
+:root{--bg:#0f172a;--bg2:#1e293b;--bg3:#334155;--txt:#f1f5f9;--txt2:#94a3b8;--txt3:#64748b;--ac:#3b82f6;--ac2:#2563eb;--ok:#22c55e;--wrn:#f59e0b;--err:#ef4444;--bdr:#334155;--sh:0 4px 6px -1px rgba(0,0,0,.3);--r:12px;--rs:8px;--tr:.2s ease}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{font-size:16px;-webkit-text-size-adjust:100%}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--txt);line-height:1.5;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+.app{max-width:600px;margin:0 auto;min-height:100vh;padding-bottom:24px}
+.header{background:var(--bg2);border-bottom:1px solid var(--bdr);position:sticky;top:0;z-index:100;backdrop-filter:blur(10px)}
+.header-content{padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.header-title{display:flex;align-items:center;gap:10px}
+.header-icon{color:var(--ac);flex-shrink:0}
+.header-title h1{font-size:1.1rem;font-weight:600;letter-spacing:-.02em}
+.header-stats{font-size:.75rem;color:#60a5fa;font-weight:500;text-align:right}
+.upload-section{padding:16px}
+.drop-zone{background:var(--bg2);border:2px dashed var(--bdr);border-radius:var(--r);padding:32px 20px;text-align:center;cursor:pointer;transition:all var(--tr);position:relative}
+.drop-zone:hover{border-color:var(--ac);background:rgba(59,130,246,.05)}
+.drop-zone.dragover{border-color:var(--ac);background:rgba(59,130,246,.1);transform:scale(1.02)}
+.drop-zone-content{pointer-events:none}
+.drop-icon{color:var(--ac);margin-bottom:12px;opacity:.8}
+.drop-title{font-size:1rem;font-weight:600;margin-bottom:4px}
+.drop-subtitle{font-size:.8rem;color:#60a5fa;font-weight:500;margin-bottom:8px}
+.drop-hint{font-size:.75rem;color:var(--txt3);line-height:1.6}
+.controls-section{padding:0 16px 12px;display:flex;flex-direction:column;gap:12px}
+.search-box{position:relative;display:flex;align-items:center}
+.search-icon{position:absolute;left:12px;color:var(--txt3);pointer-events:none;z-index:2}
+.search-input{width:100%;padding:10px 36px 10px 40px;background:var(--bg2);border:1px solid var(--bdr);border-radius:var(--rs);color:var(--txt);font-size:.9rem;outline:none;transition:all var(--tr);-webkit-appearance:none}
+.search-input:focus{border-color:var(--ac);box-shadow:0 0 0 3px rgba(59,130,246,.15)}
+.search-input::placeholder{color:var(--txt3)}
+.search-clear{position:absolute;right:8px;background:var(--bg3);border:none;color:var(--txt2);width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all var(--tr);padding:0}
+.search-clear:hover{background:var(--err);color:#fff}
+.action-buttons{display:flex;gap:8px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 14px;border:none;border-radius:var(--rs);font-size:.8rem;font-weight:600;cursor:pointer;transition:all var(--tr);white-space:nowrap;flex:1;min-width:80px}
+.btn svg{flex-shrink:0}
+.btn-pri{background:var(--ac);color:#fff}
+.btn-pri:hover{background:var(--ac2);transform:translateY(-1px)}
+.btn-sec{background:var(--bg3);color:var(--txt2)}
+.btn-sec:hover{background:var(--err);color:#fff}
+.progress-container{padding:0 16px 12px}
+.progress-bar{height:6px;background:var(--bg3);border-radius:3px;overflow:hidden;margin-bottom:8px}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--ac),#60a5fa);border-radius:3px;transition:width .3s ease;width:0%}
+.progress-text{font-size:.75rem;color:var(--txt3);text-align:center}
+.progress-detail{font-size:.7rem;color:var(--txt3);text-align:center;margin-top:2px;opacity:.7}
+.error-log{margin:0 16px 12px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:var(--rs);padding:12px}
+.error-header{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:.8rem;font-weight:600;color:var(--err)}
+.error-close{margin-left:auto;background:transparent;border:1px solid var(--err);color:var(--err);padding:2px 8px;border-radius:4px;font-size:.7rem;cursor:pointer}
+.error-list{list-style:none;max-height:120px;overflow-y:auto}
+.error-list li{font-size:.75rem;color:var(--txt2);padding:3px 0;border-bottom:1px solid rgba(239,68,68,.1)}
+.error-list li:last-child{border-bottom:none}
+.data-section{padding:0 16px;position:relative}
+.data-list{position:relative}
+.data-card{background:var(--bg2);border:1px solid var(--bdr);border-radius:var(--r);padding:14px;margin-bottom:10px;box-shadow:var(--sh);transition:transform var(--tr),box-shadow var(--tr);will-change:transform;contain:layout style paint}
+.data-card:hover{transform:translateY(-2px);box-shadow:0 8px 12px -2px rgba(0,0,0,.4);border-color:var(--ac)}
+.card-row{display:flex;justify-content:space-between;align-items:flex-start;padding:5px 0;border-bottom:1px solid rgba(51,65,85,.5);gap:12px}
+.card-row:last-child{border-bottom:none}
+.card-label{font-size:.7rem;font-weight:600;color:var(--txt3);text-transform:uppercase;letter-spacing:.05em;flex-shrink:0;min-width:100px;padding-top:2px}
+.card-value{font-size:.85rem;color:var(--txt);word-break:break-word;text-align:right;flex:1;line-height:1.4}
+.card-value.ok{color:var(--ok);font-weight:600}
+.card-value.hl{color:#60a5fa;font-weight:500}
+.card-value.money{color:var(--wrn);font-weight:600;font-family:'SF Mono',monospace}
+.copy-row{align-items:center}
+.btn-copy{display:inline-flex;align-items:center;gap:4px;background:var(--bg3);border:1px solid var(--bdr);color:#60a5fa;padding:3px 8px;border-radius:4px;font-size:.7rem;cursor:pointer;transition:all var(--tr);white-space:nowrap;flex-shrink:0}
+.btn-copy:hover{background:var(--ac);color:#fff;border-color:var(--ac)}
+.btn-copy:active{transform:scale(.95)}
+.btn-copy-all{display:inline-flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--bdr);color:var(--txt2);padding:6px 14px;border-radius:var(--rs);font-size:.8rem;cursor:pointer;transition:all var(--tr);width:100%;justify-content:center}
+.btn-copy-all:hover{background:var(--ac);color:#fff;border-color:var(--ac)}
+.loading-more{text-align:center;padding:20px;color:var(--txt3);font-size:.8rem;display:flex;align-items:center;justify-content:center;gap:10px}
+.spinner{width:20px;height:20px;border:2px solid var(--bdr);border-top-color:var(--ac);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty-state{text-align:center;padding:48px 20px;color:var(--txt3)}
+.empty-state svg{margin-bottom:16px;opacity:.3}
+.empty-state p{font-size:.95rem;font-weight:500;margin-bottom:4px}
+.empty-sub{font-size:.8rem!important;opacity:.7}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--bg2);color:var(--txt);padding:12px 24px;border-radius:var(--rs);font-size:.85rem;font-weight:500;box-shadow:0 8px 24px rgba(0,0,0,.4);border:1px solid var(--bdr);z-index:1000;opacity:0;transition:all .3s ease;pointer-events:none;white-space:nowrap}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+.toast.ok{border-color:var(--ok);color:var(--ok)}
+.toast.err{border-color:var(--err);color:var(--err)}
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--bg3);border-radius:3px}
+::selection{background:rgba(59,130,246,.3);color:var(--txt)}
+@media(min-width:768px){.app{max-width:700px}.header-content{padding:14px 24px}.header-title h1{font-size:1.25rem}.upload-section,.controls-section,.data-section{padding-left:24px;padding-right:24px}.drop-zone{padding:40px 24px}.data-card{padding:18px}.card-label{font-size:.75rem;min-width:120px}.card-value{font-size:.9rem}.btn{padding:10px 18px;font-size:.85rem}.search-input{padding:12px 40px 12px 44px;font-size:.95rem}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 </style>
 </head>
 <body>
-<div id="app">
-  <div class="header">
-    <h1>📊 Dashboard Data LASIK Filter</h1>
-    <div class="subtitle">File 1: SIPP Capsolver &nbsp;|&nbsp; File 2: HASIL VALID</div>
-  </div>
-
-  <div class="tabs">
-    <button class="tab-btn active" data-tab="file1" onclick="switchTab('file1')">
-      📁 File 1 <span class="badge" id="badge1">0</span>
-    </button>
-    <button class="tab-btn" data-tab="file2" onclick="switchTab('file2')">
-      📁 File 2 <span class="badge" id="badge2">0</span>
-    </button>
-  </div>
-
-  <div class="search-bar">
-    <input type="text" id="searchInput" placeholder="🔍 Cari semua data (KPJ, Nama, NIK, Kota, Status...)" oninput="searchData()">
-    <button class="btn-clear" onclick="clearSearch()" title="Bersihkan pencarian">❌</button>
-  </div>
-
-  <div class="stats-row" id="statsRow">
-    <div class="stat-box">
-      <div class="stat-num" id="totalCount">0</div>
-      <div class="stat-label">Total Data</div>
-    </div>
-    <div class="stat-box">
-      <div class="stat-num" id="filteredCount">0</div>
-      <div class="stat-label">Ditampilkan</div>
-    </div>
-    <div class="stat-box">
-      <div class="stat-num" id="totalSaldo">0</div>
-      <div class="stat-label">Total Saldo</div>
-    </div>
-  </div>
-
-  <div class="upload-section">
-    <label class="upload-btn">
-      📤 Upload File Excel/CSV
-      <input type="file" id="fileUpload" accept=".xlsx,.xls,.csv,.txt" multiple onchange="handleUpload(event)">
-    </label>
-    <button class="btn-danger" onclick="clearAllData()">🗑️ Hapus Semua</button>
-  </div>
-
-  <div id="tableFile1" class="table-container active">
-    <div class="table-header">
-      <h3>📋 Data File 1 (SIPP Capsolver)</h3>
-      <button class="btn-copy-all" onclick="copyAllFile1()">📋 Salin Semua</button>
-    </div>
-    <div class="table-scroll">
-      <table id="dataTable1">
-        <thead>
-          <tr>
-            <th>No</th>
-            <th>KPJ <button class="btn-copy-col" onclick="copyCol('file1','KPJ')" title="Salin kolom">📋</button></th>
-            <th>Nama <button class="btn-copy-col" onclick="copyCol('file1','Nama')" title="Salin kolom">📋</button></th>
-            <th>NIK <button class="btn-copy-col" onclick="copyCol('file1','NIK')" title="Salin kolom">📋</button></th>
-            <th>Tgl Lahir <button class="btn-copy-col" onclick="copyCol('file1','Tgl_Lahir')" title="Salin kolom">📋</button></th>
-            <th>Kota</th>
-            <th>Status LASIK</th>
-            <th>Detail LASIK</th>
-            <th>Kategori</th>
-            <th>Saldo LASIK</th>
-            <th>Aksi</th>
-          </tr>
-        </thead>
-        <tbody id="tbody1"></tbody>
-      </table>
-    </div>
-    <div id="empty1" class="empty-state">📭 Tidak ada data yang cocok dengan filter</div>
-  </div>
-
-  <div id="tableFile2" class="table-container">
-    <div class="table-header">
-      <h3>📋 Data File 2 (HASIL VALID)</h3>
-      <button class="btn-copy-all" onclick="copyAllFile2()">📋 Salin Semua</button>
-    </div>
-    <div class="table-scroll">
-      <table id="dataTable2">
-        <thead>
-          <tr>
-            <th>No</th>
-            <th>OSS_KPJ <button class="btn-copy-col" onclick="copyCol('file2','OSS_KPJ')" title="Salin kolom">📋</button></th>
-            <th>OSS_NIK <button class="btn-copy-col" onclick="copyCol('file2','OSS_NIK')" title="Salin kolom">📋</button></th>
-            <th>OSS_Nama <button class="btn-copy-col" onclick="copyCol('file2','OSS_Nama')" title="Salin kolom">📋</button></th>
-            <th>OSS_Tgl_Lahir <button class="btn-copy-col" onclick="copyCol('file2','OSS_Tgl_Lahir')" title="Salin kolom">📋</button></th>
-            <th>Jenis Kelamin</th>
-            <th>DPT_Kabupaten</th>
-            <th>LASIK_Notif</th>
-            <th>Saldo JHT</th>
-            <th>Jumlah Kartu</th>
-            <th>Pesan Pengkinian</th>
-            <th>Aksi</th>
-          </tr>
-        </thead>
-        <tbody id="tbody2"></tbody>
-      </table>
-    </div>
-    <div id="empty2" class="empty-state">📭 Tidak ada data yang cocok dengan filter</div>
-  </div>
-
-  <div id="toast" class="toast"></div>
+<div class="app">
+<header class="header"><div class="header-content"><div class="header-title"><svg class="header-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg><h1>LASIK Manager</h1></div><div class="header-stats" id="headerStats"></div></div></header>
+<section class="upload-section"><div class="drop-zone" id="dropZone"><input type="file" id="fileInput" multiple accept=".xlsx,.xls,.csv,.txt" style="display:none"><div class="drop-zone-content"><svg class="drop-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg><p class="drop-title">Unggah File</p><p class="drop-subtitle">XLSX, XLS, CSV, TXT</p><p class="drop-hint">Ketuk atau seret file ke sini</p><p class="drop-hint">Bisa banyak file sekaligus</p></div></div></section>
+<section class="controls-section" id="controlsSection" style="display:none"><div class="search-box"><svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" class="search-input" id="searchInput" placeholder="Cari data..." autocomplete="off" autocorrect="off" autocapitalize="off"><button class="search-clear" id="searchClear" style="display:none"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><div class="action-buttons"><button class="btn btn-sec" id="btnClearAll"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Hapus</button><button class="btn btn-pri" id="btnExportCSV"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>CSV</button><button class="btn btn-pri" id="btnExportXLSX"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>XLSX</button></div></section>
+<div class="progress-container" id="progressContainer" style="display:none"><div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div><p class="progress-text" id="progressText">Memproses...</p><p class="progress-detail" id="progressDetail"></p></div>
+<div class="error-log" id="errorLog" style="display:none"><div class="error-header"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span>File Gagal Diproses</span><button class="error-close" id="errorClose">Tutup</button></div><ul class="error-list" id="errorList"></ul></div>
+<section class="data-section" id="dataSection"><div class="data-list" id="dataList"></div><div class="loading-more" id="loadingMore" style="display:none"><div class="spinner"></div><span>Memuat data...</span></div><div class="empty-state" id="emptyState"><svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg><p>Belum ada data</p><p class="empty-sub">Unggah file XLSX, XLS, CSV, atau TXT</p></div></section>
 </div>
-
+<div class="toast" id="toast"></div>
 <script>
 
-  const initialFile1 = [{"KPJ": "08019748238", "Nama": "SAFRIZAL M AFFAN", "NIK": "1111140212810001", "Tgl_Lahir": "02-12-1981", "Kota": "KAB. BIREUEN", "Status_LASIK": "LAYAK", "Detail_LASIK": "Silahkan Gunakan JMO (Jamsostek Mobile) Agar Pengajuan Klaim Anda Lebih Cepat dan Mudah.", "Kategori": "JMO", "Saldo_LASIK": 1089650}, {"KPJ": "08019748253", "Nama": "TEDI SETIADI", "NIK": "3273022012900009", "Tgl_Lahir": "20-12-1990", "Kota": "KOTA BANDUNG", "Status_LASIK": "LAYAK", "Detail_LASIK": "Silahkan Gunakan JMO (Jamsostek Mobile) Agar Pengajuan Klaim Anda Lebih Cepat dan Mudah.", "Kategori": "JMO", "Saldo_LASIK": 2205280}, {"KPJ": "08019748261", "Nama": "ZAKY MUBARAT", "NIK": "1106121006880002", "Tgl_Lahir": "10-06-1988", "Kota": "KAB. ACEH BESAR", "Status_LASIK": "LAYAK", "Detail_LASIK": "Silahkan Gunakan JMO (Jamsostek Mobile) Agar Pengajuan Klaim Anda Lebih Cepat dan Mudah.", "Kategori": "JMO", "Saldo_LASIK": 1787720}, {"KPJ": "08019748303", "Nama": "HAERIL ANWAR", "NIK": "5201140601860001", "Tgl_Lahir": "06-01-1986", "Kota": "KAB. LOMBOK BARAT", "Status_LASIK": "LAYAK", "Detail_LASIK": "Silahkan Gunakan JMO (Jamsostek Mobile) Agar Pengajuan Klaim Anda Lebih Cepat dan Mudah.", "Kategori": "JMO", "Saldo_LASIK": 2809220}, {"KPJ": "08019748493", "Nama": "SOFYAN", "NIK": "1173022802790002", "Tgl_Lahir": "28-02-1979", "Kota": "KOTA LHOKSEUMAWE", "Status_LASIK": "LAYAK", "Detail_LASIK": "Silahkan Gunakan JMO (Jamsostek Mobile) Agar Pengajuan Klaim Anda Lebih Cepat dan Mudah.", "Kategori": "JMO", "Saldo_LASIK": 1787720}, {"KPJ": "08019748519", "Nama": "RUDI PRATAMA", "NIK": "1173011809880002", "Tgl_Lahir": "18-09-1988", "Kota": "KOTA LHOKSEUMAWE", "Status_LASIK": "LAYAK", "Detail_LASIK": "Silahkan Gunakan JMO (Jamsostek Mobile) Agar Pengajuan Klaim Anda Lebih Cepat dan Mudah.", "Kategori": "JMO", "Saldo_LASIK": 1787720}, {"KPJ": "08019748568", "Nama": "PASIA", "NIK": "1603035001900001", "Tgl_Lahir": "10-01-1990", "Kota": "KAB. MUARA ENIM", "Status_LASIK": "LAYAK", "Detail_LASIK": "Silahkan Gunakan JMO (Jamsostek Mobile) Agar Pengajuan Klaim Anda Lebih Cepat dan Mudah.", "Kategori": "JMO", "Saldo_LASIK": 1548330}, {"KPJ": "08019748618", "Nama": "ISKANDAR", "NIK": "1118060508760003", "Tgl_Lahir": "05-08-1976", "Kota": "KAB. PIDIE JAYA", "Status_LASIK": "LAYAK", "Detail_LASIK": "Silahkan Gunakan JMO (Jamsostek Mobile) Agar Pengajuan Klaim Anda Lebih Cepat dan Mudah.", "Kategori": "JMO", "Saldo_LASIK": 1787720}, {"KPJ": "08019748667", "Nama": "CECEP", "NIK": "3211221107700003", "Tgl_Lahir": "11-07-1970", "Kota": "KAB. SUMEDANG", "Status_LASIK": "LAYAK", "Detail_LASIK": "Silahkan Gunakan JMO (Jamsostek Mobile) Agar Pengajuan Klaim Anda Lebih Cepat dan Mudah.", "Kategori": "JMO", "Saldo_LASIK": 385990}, {"KPJ": "08019748675", "Nama": "ENDANG SUSILO", "NIK": "1312032103790002", "Tgl_Lahir": "21-03-1979", "Kota": "KAB. PASAMAN BARAT", "Status_LASIK": "LAYAK", "Detail_LASIK": "Silahkan Gunakan JMO (Jamsostek Mobile) Agar Pengajuan Klaim Anda Lebih Cepat dan Mudah.", "Kategori": "JMO", "Saldo_LASIK": 1217030}, {"KPJ": "08019748683", "Nama": "DEDI", "NIK": "1709040806890002", "Tgl_Lahir": "08-06-1989", "Kota": "KAB. BENGKULU TENGAH", "Status_LASIK": "LAYAK", "Detail_LASIK": "Silahkan Gunakan JMO (Jamsostek Mobile) Agar Pengajuan Klaim Anda Lebih Cepat dan Mudah.", "Kategori": "JMO", "Saldo_LASIK": 385990}, {"KPJ": "08019748717", "Nama": "HARUN", "NIK": "3329121205830012", "Tgl_Lahir": "12-05-1983", "Kota": "KAB. BREBES", "Status_LASIK": "LAYAK", "Detail_LASIK": "Silahkan Gunakan JMO (Jamsostek Mobile) Agar Pengajuan Klaim Anda Lebih Cepat dan Mudah.", "Kategori": "JMO", "Saldo_LASIK": 574280}, {"KPJ": "08019748725", "Nama": "RIDWAN MANURUNG", "NIK": "1201201011810001", "Tgl_Lahir": "10-11-1981", "Kota": "KAB. TAPANULI TENGAH", "Status_LASIK": "LAYAK", "Detail_LASIK": "Silahkan Gunakan JMO (Jamsostek Mobile) Agar Pengajuan Klaim Anda Lebih Cepat dan Mudah.", "Kategori": "JMO", "Saldo_LASIK": 1393410}, {"KPJ": "08019748758", "Nama": "SOFYAN EFENDI SIREGAR", "NIK": "1277011502770006", "Tgl_Lahir": "15-02-1977", "Kota": "KOTA PADANGSIDIMPUAN", "Status_LASIK": "LAYAK", "Detail_LASIK": "Silahkan Gunakan JMO (Jamsostek Mobile) Agar Pengajuan Klaim Anda Lebih Cepat dan Mudah.", "Kategori": "JMO", "Saldo_LASIK": 3022430}, {"KPJ": "08019748782", "Nama": "MERIN", "NIK": "1905020107870002", "Tgl_Lahir": "01-07-1987", "Kota": "KAB. BANGKA BARAT", "Status_LASIK": "LAYAK", "Detail_LASIK": "Silahkan Gunakan JMO (Jamsostek Mobile) Agar Pengajuan Klaim Anda Lebih Cepat dan Mudah.", "Kategori": "JMO", "Saldo_LASIK": 385990}, {"KPJ": "08019748808", "Nama": "OTANG SURYANA", "NIK": "1404150406830001", "Tgl_Lahir": "04-06-1983", "Kota": "KAB. INDRAGIRI HILIR", "Status_LASIK": "LAYAK", "Detail_LASIK": "Silahkan Gunakan JMO (Jamsostek Mobile) Agar Pengajuan Klaim Anda Lebih Cepat dan Mudah.", "Kategori": "JMO", "Saldo_LASIK": 1497120}, {"KPJ": "08019748816", "Nama": "SAMSUL SIREGAR", "NIK": "1277020205880003", "Tgl_Lahir": "02-05-1988", "Kota": "KOTA PADANGSIDIMPUAN", "Status_LASIK": "LAYAK", "Detail_LASIK": "Silahkan Gunakan JMO (Jamsostek Mobile) Agar Pengajuan Klaim Anda Lebih Cepat dan Mudah.", "Kategori": "JMO", "Saldo_LASIK": 1217030}, {"KPJ": "08019748832", "Nama": "ROY ANDERSON TARIGAN", "NIK": "1277021506770004", "Tgl_Lahir": "15-07-1977", "Kota": "KOTA PADANGSIDIMPUAN", "Status_LASIK": "LAYAK", "Detail_LASIK": "Silahkan Gunakan JMO (Jamsostek Mobile) Agar Pengajuan Klaim Anda Lebih Cepat dan Mudah.", "Kategori": "JMO", "Saldo_LASIK": 3804870}, {"KPJ": "08019748840", "Nama": "SUPENDI HARTANTO", "NIK": "3213230212720002", "Tgl_Lahir": "02-12-1972", "Kota": "KAB. SUBANG", "Status_LASIK": "LAYAK", "Detail_LASIK": "Silahkan Gunakan JMO (Jamsostek Mobile) Agar Pengajuan Klaim Anda Lebih Cepat dan Mudah.", "Kategori": "JMO", "Saldo_LASIK": 761340}, {"KPJ": "08019748857", "Nama": "TAUFIQ", "NIK": "1209232812810001", "Tgl_Lahir": "28-12-1981", "Kota": "KAB. ASAHAN", "Status_LASIK": "LAYAK", "Detail_LASIK": "Silahkan Gunakan JMO (Jamsostek Mobile) Agar Pengajuan Klaim Anda Lebih Cepat dan Mudah.", "Kategori": "JMO", "Saldo_LASIK": 1381200}, {"KPJ": "08019748865", "Nama": "YOPI DESMADI", "NIK": "1208222112890001", "Tgl_Lahir": "21-12-1989", "Kota": "KAB. SIMALUNGUN", "Status_LASIK": "LAYAK", "Detail_LASIK": "Silahkan Gunakan JMO (Jamsostek Mobile) Agar Pengajuan Klaim Anda Lebih Cepat dan Mudah.", "Kategori": "JMO", "Saldo_LASIK": 1381200}, {"KPJ": "08019748915", "Nama": "PARLINDUNGAN HARAHAP", "NIK": "1203042202900002", "Tgl_Lahir": "22-02-1990", "Kota": "KAB. TAPANULI SELATAN", "Status_LASIK": "LAYAK", "Detail_LASIK": "Silahkan Gunakan JMO (Jamsostek Mobile) Agar Pengajuan Klaim Anda Lebih Cepat dan Mudah.", "Kategori": "JMO", "Saldo_LASIK": 3720340}, {"KPJ": "08019748931", "Nama": "NURLINDA", "NIK": "1404124112770002", "Tgl_Lahir": "01-12-1977", "Kota": "KAB. INDRAGIRI HILIR", "Status_LASIK": "LAYAK", "Detail_LASIK": "Silahkan Gunakan JMO (Jamsostek Mobile) Agar Pengajuan Klaim Anda Lebih Cepat dan Mudah.", "Kategori": "JMO", "Saldo_LASIK": 1315080}, {"KPJ": "08019748956", "Nama": "ADE", "NIK": "1801154709650005", "Tgl_Lahir": "07-09-1965", "Kota": "KAB. LAMPUNG SELATAN", "Status_LASIK": "LAYAK", "Detail_LASIK": "Konfirmasi pengajuan klaim Anda, hanya dapat dilakukan secara langsung di Kantor Cabang.", "Kategori": "JMO", "Saldo_LASIK": 1854050}, {"KPJ": "08019748980", "Nama": "AJI", "NIK": "3217040307800007", "Tgl_Lahir": "03-07-1980", "Kota": "KAB. BANDUNG BARAT", "Status_LASIK": "LAYAK", "Detail_LASIK": "Silahkan Gunakan JMO (Jamsostek Mobile) Agar Pengajuan Klaim Anda Lebih Cepat dan Mudah.", "Kategori": "JMO", "Saldo_LASIK": 746160}, {"KPJ": "08019749012", "Nama": "RATNAN ARIS", "NIK": "1209091808730003", "Tgl_Lahir": "18-08-1973", "Kota": "KAB. ASAHAN", "Status_LASIK": "LAYAK", "Detail_LASIK": "Silahkan Gunakan JMO (Jamsostek Mobile) Agar Pengajuan Klaim Anda Lebih Cepat dan Mudah.", "Kategori": "JMO", "Saldo_LASIK": 1381200}, {"KPJ": "08019749020", "Nama": "ANGKI TULUS BAKTIAR", "NIK": "3523022706880004", "Tgl_Lahir": "27-06-1988", "Kota": "KAB. TUBAN", "Status_LASIK": "LAYAK", "Detail_LASIK": "Silahkan Gunakan JMO (Jamsostek Mobile) Agar Pengajuan Klaim Anda Lebih Cepat dan Mudah.", "Kategori": "JMO", "Saldo_LASIK": 178500}, {"KPJ": "08019749079", "Nama": "CUCU", "NIK": "3211144107830414", "Tgl_Lahir": "01-07-1985", "Kota": "KAB. SUMEDANG", "Status_LASIK": "LAYAK", "Detail_LASIK": "Silahkan Gunakan JMO (Jamsostek Mobile) Agar Pengajuan Klaim Anda Lebih Cepat dan Mudah.", "Kategori": "JMO", "Saldo_LASIK": 385990}, {"KPJ": "08019749095", "Nama": "DOLI SUSANTO HARAHAP", "NIK": "1404150510900002", "Tgl_Lahir": "05-10-1990", "Kota": "KAB. INDRAGIRI HILIR", "Status_LASIK": "LAYAK", "Detail_LASIK": "Silahkan Gunakan JMO (Jamsostek Mobile) Agar Pengajuan Klaim Anda Lebih Cepat dan Mudah.", "Kategori": "JMO", "Saldo_LASIK": 193680}, {"KPJ": "08019749111", "Nama": "EDI", "NIK": "1205170708730006", "Tgl_Lahir": "07-08-1973", "Kota": "KAB. LANGKAT", "Status_LASIK": "LAYAK", "Detail_LASIK": "Konfirmasi pengajuan klaim Anda, hanya dapat dilakukan secara langsung di Kantor Cabang.", "Kategori": "JMO", "Saldo_LASIK": 3291660}, {"KPJ": "08019749145", "Nama": "EDI HARIS", "NIK": "3213232707850004", "Tgl_Lahir": "27-07-1985", "Kota": "KAB. SUBANG", "Status_LASIK": "LAYAK", "Detail_LASIK": "Silahkan Gunakan JMO (Jamsostek Mobile) Agar Pengajuan Klaim Anda Lebih Cepat dan Mudah.", "Kategori": "JMO", "Saldo_LASIK": 947130}, {"KPJ": "08019749160", "Nama": "EMAN", "NIK": "3209215408760001", "Tgl_Lahir": "14-08-1976", "Kota": "KAB. CIREBON", "Status_LASIK": "LAYAK", "Detail_LASIK": "Silahkan Gunakan JMO (Jamsostek Mobile) Agar Pengajuan Klaim Anda Lebih Cepat dan Mudah.", "Kategori": "JMO", "Saldo_LASIK": 385990}, {"KPJ": "08019749186", "Nama": "EMPAT", "NIK": "3213204808720009", "Tgl_Lahir": "08-08-1972", "Kota": "KAB. SUBANG", "Status_LASIK": "LAYAK", "Detail_LASIK": "Silahkan Gunakan JMO (Jamsostek Mobile) Agar Pengajuan Klaim Anda Lebih Cepat dan Mudah.", "Kategori": "JMO", "Saldo_LASIK": 2243330}, {"KPJ": "08019749194", "Nama": "DEDY ALFA ANTHONIE PURBA", "NIK": "1271210502810002", "Tgl_Lahir": "05-02-1981", "Kota": "KOTA MEDAN", "Status_LASIK": "LAYAK", "Detail_LASIK": "Silahkan Gunakan JMO (Jamsostek Mobile) Agar Pengajuan Klaim Anda Lebih Cepat dan Mudah.", "Kategori": "JMO", "Saldo_LASIK": 2238000}, {"KPJ": "08019749210", "Nama": "GUNAWAN", "NIK": "7322042710880001", "Tgl_Lahir": "27-10-1988", "Kota": "KAB. LUWU UTARA", "Status_LASIK": "LAYAK", "Detail_LASIK": "Silahkan Gunakan JMO (Jamsostek Mobile) Agar Pengajuan Klaim Anda Lebih Cepat dan Mudah.", "Kategori": "JMO", "Saldo_LASIK": 4421470}, {"KPJ": "08019749236", "Nama": "ACE", "NIK": "1607081708831001", "Tgl_Lahir": "12-04-1985", "Kota": "KAB. BANYUASIN", "Status_LASIK": "LAYAK", "Detail_LASIK": "Silahkan Gunakan JMO (Jamsostek Mobile) Agar Pengajuan Klaim Anda Lebih Cepat dan Mudah.", "Kategori": "JMO", "Saldo_LASIK": 761340}, {"KPJ": "08019749251", "Nama": "KURNIAWAN", "NIK": "1902011103850004", "Tgl_Lahir": "11-03-1985", "Kota": "KAB. BELITUNG", "Status_LASIK": "LAYAK", "Detail_LASIK": "Silahkan Gunakan JMO (Jamsostek Mobile) Agar Pengajuan Klaim Anda Lebih Cepat dan Mudah.", "Kategori": "JMO", "Saldo_LASIK": 8872020}, {"KPJ": "08019749277", "Nama": "MULYADI", "NIK": "3674010411780005", "Tgl_Lahir": "04-11-1978", "Kota": "KOTA TANGERANG SELATAN", "Status_LASIK": "LAYAK", "Detail_LASIK": "Silahkan Gunakan JMO (Jamsostek Mobile) Agar Pengajuan Klaim Anda Lebih Cepat dan Mudah.", "Kategori": "JMO", "Saldo_LASIK": 193680}, {"KPJ": "08019749400", "Nama": "SULAIMAN", "NIK": "1271032303830003", "Tgl_Lahir": "23-03-1983", "Kota": "KOTA MEDAN", "Status_LASIK": "LAYAK", "Detail_LASIK": "Silahkan Gunakan JMO (Jamsostek Mobile) Agar Pengajuan Klaim Anda Lebih Cepat dan Mudah.", "Kategori": "JMO", "Saldo_LASIK": 2719640}, {"KPJ": "08019749418", "Nama": "ROSMINI", "NIK": "1205185809710002", "Tgl_Lahir": "18-09-1971", "Kota": "KAB. LANGKAT", "Status_LASIK": "LAYAK", "Detail_LASIK": "Silahkan Gunakan JMO (Jamsostek Mobile) Agar Pengajuan Klaim Anda Lebih Cepat dan Mudah.", "Kategori": "JMO", "Saldo_LASIK": 193680}, {"KPJ": "08019749509", "Nama": "DEDY SIMANGUNSONG", "NIK": "2171122003839008", "Tgl_Lahir": "20-03-1983", "Kota": "KOTA BATAM", "Status_LASIK": "LAYAK", "Detail_LASIK": "Silahkan Gunakan JMO (Jamsostek Mobile) Agar Pengajuan Klaim Anda Lebih Cepat dan Mudah.", "Kategori": "JMO", "Saldo_LASIK": 2800070}, {"KPJ": "08019749541", "Nama": "SUHERMAN", "NIK": "1305030201820001", "Tgl_Lahir": "01-02-1982", "Kota": "KAB. PADANG PARIAMAN", "Status_LASIK": "LAYAK", "Detail_LASIK": "Silahkan Gunakan JMO (Jamsostek Mobile) Agar Pengajuan Klaim Anda Lebih Cepat dan Mudah.", "Kategori": "JMO", "Saldo_LASIK": 5805960}, {"KPJ": "08019749558", "Nama": "HERMAN", "NIK": "1207242612860003", "Tgl_Lahir": "26-12-1986", "Kota": "KAB. DELI SERDANG", "Status_LASIK": "LAYAK", "Detail_LASIK": "Silahkan Gunakan JMO (Jamsostek Mobile) Agar Pengajuan Klaim Anda Lebih Cepat dan Mudah.", "Kategori": "JMO", "Saldo_LASIK": 1553080}, {"KPJ": "08019749608", "Nama": "WARMAN BIN ADO", "NIK": "3217040506770010", "Tgl_Lahir": "05-06-1977", "Kota": "KAB. BANDUNG BARAT", "Status_LASIK": "LAYAK", "Detail_LASIK": "Silahkan Gunakan JMO (Jamsostek Mobile) Agar Pengajuan Klaim Anda Lebih Cepat dan Mudah.", "Kategori": "JMO", "Saldo_LASIK": 761340}, {"KPJ": "08019749681", "Nama": "NOLY", "NIK": "3172014212860008", "Tgl_Lahir": "02-12-1986", "Kota": "KOTA ADM. JAKARTA UTARA", "Status_LASIK": "LAYAK", "Detail_LASIK": "Silahkan Gunakan JMO (Jamsostek Mobile) Agar Pengajuan Klaim Anda Lebih Cepat dan Mudah.", "Kategori": "JMO", "Saldo_LASIK": 2089800}, {"KPJ": "08019749723", "Nama": "GUSTAF WIDYANTO", "NIK": "3174050808830001", "Tgl_Lahir": "08-08-1983", "Kota": "KOTA ADM. JAKARTA SELATAN", "Status_LASIK": "LAYAK", "Detail_LASIK": "Silahkan Gunakan JMO (Jamsostek Mobile) Agar Pengajuan Klaim Anda Lebih Cepat dan Mudah.", "Kategori": "JMO", "Saldo_LASIK": 15415590}, {"KPJ": "08019749822", "Nama": "SALAMUDIN", "NIK": "5202093112730100", "Tgl_Lahir": "31-12-1973", "Kota": "KAB. LOMBOK TENGAH", "Status_LASIK": "LAYAK", "Detail_LASIK": "Silahkan Gunakan JMO (Jamsostek Mobile) Agar Pengajuan Klaim Anda Lebih Cepat dan Mudah.", "Kategori": "JMO", "Saldo_LASIK": 1497130}, {"KPJ": "08019749897", "Nama": "ABDUL JABAR", "NIK": "1605140611930001", "Tgl_Lahir": "06-11-1993", "Kota": "KAB. MUSI RAWAS", "Status_LASIK": "LAYAK", "Detail_LASIK": "Silahkan Gunakan JMO (Jamsostek Mobile) Agar Pengajuan Klaim Anda Lebih Cepat dan Mudah.", "Kategori": "JMO", "Saldo_LASIK": 2228150}, {"KPJ": "08019749905", "Nama": "AGUS ISWANTO", "NIK": "5203082705840004", "Tgl_Lahir": "27-05-1984", "Kota": "KAB. LOMBOK TIMUR", "Status_LASIK": "LAYAK", "Detail_LASIK": "Silahkan Gunakan JMO (Jamsostek Mobile) Agar Pengajuan Klaim Anda Lebih Cepat dan Mudah.", "Kategori": "JMO", "Saldo_LASIK": 4501280}, {"KPJ": "08019749913", "Nama": "AHMAD WADI", "NIK": "1203212710770001", "Tgl_Lahir": "27-10-1977", "Kota": "KAB. TAPANULI SELATAN", "Status_LASIK": "LAYAK", "Detail_LASIK": "Silahkan Gunakan JMO (Jamsostek Mobile) Agar Pengajuan Klaim Anda Lebih Cepat dan Mudah.", "Kategori": "JMO", "Saldo_LASIK": 2533110}, {"KPJ": "08019749921", "Nama": "AMAQ ANIK", "NIK": "5203013112720230", "Tgl_Lahir": "31-12-1972", "Kota": "KAB. LOMBOK TIMUR", "Status_LASIK": "LAYAK", "Detail_LASIK": "Silahkan Gunakan JMO (Jamsostek Mobile) Agar Pengajuan Klaim Anda Lebih Cepat dan Mudah.", "Kategori": "JMO", "Saldo_LASIK": 931950}, {"KPJ": "08019749939", "Nama": "AMAQ ENDANG", "NIK": "5203033112760268", "Tgl_Lahir": "31-12-1976", "Kota": "KAB. LOMBOK TIMUR", "Status_LASIK": "LAYAK", "Detail_LASIK": "Silahkan Gunakan JMO (Jamsostek Mobile) Agar Pengajuan Klaim Anda Lebih Cepat dan Mudah.", "Kategori": "JMO", "Saldo_LASIK": 1481920}, {"KPJ": "08019749962", "Nama": "HAPNI", "NIK": "1210194903890001", "Tgl_Lahir": "09-03-1989", "Kota": "KAB. LABUHANBATU", "Status_LASIK": "LAYAK", "Detail_LASIK": "Silahkan Gunakan JMO (Jamsostek Mobile) Agar Pengajuan Klaim Anda Lebih Cepat dan Mudah.", "Kategori": "JMO", "Saldo_LASIK": 574280}, {"KPJ": "08019749970", "Nama": "HAZMI", "NIK": "1806171211880002", "Tgl_Lahir": "12-11-1988", "Kota": "KAB. TANGGAMUS", "Status_LASIK": "LAYAK", "Detail_LASIK": "Silahkan Gunakan JMO (Jamsostek Mobile) Agar Pengajuan Klaim Anda Lebih Cepat dan Mudah.", "Kategori": "JMO", "Saldo_LASIK": 947130}, {"KPJ": "08019749988", "Nama": "MAHBOBI", "NIK": "1404150606790001", "Tgl_Lahir": "06-06-1979", "Kota": "KAB. INDRAGIRI HILIR", "Status_LASIK": "LAYAK", "Detail_LASIK": "Silahkan Gunakan JMO (Jamsostek Mobile) Agar Pengajuan Klaim Anda Lebih Cepat dan Mudah.", "Kategori": "JMO", "Saldo_LASIK": 6773900}];
-  const initialFile2 = [{"OSS_KPJ": "17047478288", "OSS_NIK": "1271192010970002", "OSS_Nama": "ALFIN KARIM", "OSS_Tgl_Lahir": "20-10-1997", "OSS_Jenis_Kelamin": "LAKI-LAKI", "DPT_Kabupaten": "KOTA MEDAN", "LASIK_Notif": "JMO", "LASIK_Saldo_JHT": 5438978, "LASIK_Jumlah_Kartu_JHT": 1, "LASIK_Pesan_Pengkinian": "LAYAK"}];
+// ============================================
+// CONFIG
+// ============================================
+const CFG={
+    POOL_SIZE:Math.min(Math.max((navigator.hardwareConcurrency||4)-1,2),8),
+    ITEM_HEIGHT:280,VISIBLE_COUNT:15,DB_CHUNK:2000,RENDER_CHUNK:50,SEARCH_CHUNK:5000
+};
 
-  let file1Data = [];
-  let file2Data = [];
-  let currentTab = 'file1';
-  let searchQuery = '';
+// ============================================
+// UTILS
+// ============================================
+const U={
+    norm(h){return String(h||'').toLowerCase().replace(/[_\s\.\-]+/g,'').trim();},
+    match(h,ps){const n=this.norm(h);return ps.some(p=>n===this.norm(p));},
+    deb(fn,d){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),d);};},
+    esc(s){if(s==null)return'';const d=document.createElement('div');d.textContent=String(s);return d.innerHTML;},
+    fmtN(n){if(n==null)return'';const v=parseFloat(String(n).replace(/[^\d.-]/g,''));return isNaN(v)?String(n):'Rp '+v.toLocaleString('id-ID');},
+    parseN(v){if(v==null)return 0;const c=String(v).replace(/[^\d.-]/g,'');const n=parseFloat(c);return isNaN(n)?0:n;},
+    genId(){return Date.now().toString(36)+Math.random().toString(36).slice(2,9);},
+    async yield(){return new Promise(r=>{if(typeof requestIdleCallback!=='undefined')requestIdleCallback(r,{timeout:50});else requestAnimationFrame(r);});}
+};
 
-  function init() {
-    try {
-      const saved1 = localStorage.getItem('lasik_file1');
-      const saved2 = localStorage.getItem('lasik_file2');
-      if (saved1) file1Data = JSON.parse(saved1);
-      else file1Data = [...initialFile1];
-      if (saved2) file2Data = JSON.parse(saved2);
-      else file2Data = [...initialFile2];
-    } catch(e) {
-      file1Data = [...initialFile1];
-      file2Data = [...initialFile2];
+// ============================================
+// INDEXEDDB - INCREMENTAL WRITE (NO CLEAR!)
+// ============================================
+const DB={
+    NAME:'LasikDB',VER:1,REC:'rec',META:'meta',db:null,
+    async init(){if(this.db)return this.db;return new Promise((ok,no)=>{const r=indexedDB.open(this.NAME,this.VER);r.onerror=()=>no(r.error);r.onsuccess=()=>{this.db=r.result;ok(this.db);};r.onupgradeneeded=e=>{const d=e.target.result;if(!d.objectStoreNames.contains(this.REC))d.createObjectStore(this.REC,{keyPath:'_id'});if(!d.objectStoreNames.contains(this.META))d.createObjectStore(this.META,{keyPath:'k'});};});},
+    async addBatch(recs){if(!recs.length)return;const db=await this.init();const tx=db.transaction([this.REC],'readwrite');const st=tx.objectStore(this.REC);for(const r of recs)st.put({...r,_id:U.genId()});return new Promise((ok,no)=>{tx.oncomplete=ok;tx.onerror=()=>no(tx.error);});},
+    async getAll(){const db=await this.init();const tx=db.transaction([this.REC],'readonly');const st=tx.objectStore(this.REC);return new Promise((ok,no)=>{const r=st.getAll();r.onsuccess=()=>ok((r.result||[]).map(({_id,...rest})=>rest));r.onerror=()=>no(r.error);});},
+    async count(){const db=await this.init();const tx=db.transaction([this.REC],'readonly');const st=tx.objectStore(this.REC);return new Promise((ok,no)=>{const r=st.count();r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error);});},
+    async clear(){const db=await this.init();const tx=db.transaction([this.REC,this.META],'readwrite');tx.objectStore(this.REC).clear();tx.objectStore(this.META).clear();return new Promise((ok,no)=>{tx.oncomplete=ok;tx.onerror=()=>no(tx.error);});},
+    async setMeta(k,v){const db=await this.init();const tx=db.transaction([this.META],'readwrite');tx.objectStore(this.META).put({k,v,t:Date.now()});return new Promise((ok,no)=>{tx.oncomplete=ok;tx.onerror=()=>no(tx.error);});},
+    async getMeta(k){const db=await this.init();const tx=db.transaction([this.META],'readonly');const st=tx.objectStore(this.META);return new Promise((ok,no)=>{const r=st.get(k);r.onsuccess=()=>ok(r.result?r.result.v:null);r.onerror=()=>no(r.error);});}
+};
+
+// ============================================
+// HEADER MAPPING
+// ============================================
+const HMAP={
+    'KPJ':['KPJ','OSS_KPJ','NO_KPJ','KPJTK','NOMOR_KPJ','NO.KPJ','KPJ_NO'],
+    'NIK':['NIK','OSS_NIK','NO_KTP','NOMOR_NIK','NO.NIK','KTP','NO_KTP'],
+    'NAMA':['NAMA','Nama','OSS_Nama','NAMA_OSS','NAMA_DPT','DPT_Nama','NAMA_LENGKAP','Nama_Lengkap'],
+    'TANGGAL LAHIR':['TANGGAL LAHIR','TANGGAL_LAHIR','TGL_LAHIR','TGL LAHIR','OSS_Tanggal_Lahir','Tgl_Lahir','Tgl Lahir','TANGGALLAHIR'],
+    'KOTA':['KOTA','KABUPATEN','DPT_Kabupaten','KAB/KOTA','KABUPATEN_KOTA','KABUPATENKOTA','KABUPATEN_KOTA'],
+    'STATUS LASIK':['STATUS LASIK','LASIK_Pesan_Pengkinian','STATUS_LASIK','Status_LASIK','STATUSLASIK'],
+    'DETAIL LASIK':['DETAIL LASIK','LASIK_DETAIL','LASIK_KETERANGAN','DETAIL_LASIK','DETAILLASIK','Detail_LASIK'],
+    'KATEGORI':['KATEGORI','LASIK_Notif','KATEGORI_LASIK','KATEGORILASIK','Kategori'],
+    'SALDO LASIK':['SALDO LASIK','LASIK_Saldo_JHT','SALDO','JHT','SALDO_JHT','SALDOJHT','LASIK_Saldo','SALDO_LASIK']
+};
+
+function detMap(hdrs){const m={};for(const[std,ps]of Object.entries(HMAP)){for(const h of hdrs){if(U.match(h,ps)){m[std]=h;break;}}}return m;}
+function pStat(v){if(!v)return'';const s=String(v).toUpperCase();return s.includes('LAYAK')?'LAYAK':'';}
+function pDet(v){if(!v)return'';const s=String(v);return s.toLowerCase().includes('silahkan')?s.replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim():'';}
+function pKat(v){if(!v)return'';return String(v).trim().toUpperCase()==='JMO'?'JMO':'';}
+function pSal(v){if(!v)return'';const n=U.parseN(v);return n>=1e6?U.fmtN(n):'';}
+function xform(row,mapping){const r={};for(const[std,src]of Object.entries(mapping)){let v=row[src];switch(std){case'STATUS LASIK':r[std]=pStat(v);break;case'DETAIL LASIK':r[std]=pDet(v);break;case'KATEGORI':r[std]=pKat(v);break;case'SALDO LASIK':r[std]=pSal(v);break;default:r[std]=v!=null?String(v).trim():'';}}return r;}
+
+// ============================================
+// WEB WORKER POOL - PARALLEL PARSING
+// ============================================
+class WorkerPool {
+    constructor(size) {
+        this.size = size;
+        this.queue = [];
+        this.active = 0;
+        this.workers = [];
+        this.boot = "importScripts('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');\n\nself.onmessage = function(e) {\n    const { type, fileData, fileName, ext } = e.data;\n    try {\n        let records = [];\n        if (type === 'parse') {\n            if (ext === 'xlsx' || ext === 'xls') records = parseXLSX(fileData);\n            else if (ext === 'csv') records = parseCSV(fileData);\n            else if (ext === 'txt') records = parseTXT(fileData);\n        }\n        self.postMessage({ type: 'done', records, fileName });\n    } catch (err) {\n        self.postMessage({ type: 'error', error: err.message, fileName });\n    }\n};\n\nfunction parseXLSX(data) {\n    const XLSX = self.XLSX;\n    if (!XLSX) throw new Error('SheetJS not loaded');\n    const wb = XLSX.read(new Uint8Array(data), { type: 'array', cellDates: true });\n    const ws = wb.Sheets[wb.SheetNames[0]];\n    const raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });\n    if (raw.length < 2) return [];\n    const headers = raw[0].map(h => String(h || '').trim());\n    const mapping = detectHeaders(headers);\n    const out = [];\n    for (let i = 1; i < raw.length; i++) {\n        const row = {};\n        headers.forEach((h, idx) => row[h] = raw[i][idx] !== undefined ? raw[i][idx] : '');\n        out.push(transformRow(row, mapping));\n    }\n    return out;\n}\n\nfunction parseCSV(data) {\n    const text = new TextDecoder('utf-8').decode(data);\n    const lines = text.trim().split('\\n');\n    if (lines.length < 2) return [];\n    const dlm = lines[0].includes('\\t') ? '\\t' : lines[0].includes(';') ? ';' : ',';\n    const headers = parseLine(lines[0], dlm);\n    const mapping = detectHeaders(headers);\n    const out = [];\n    for (let i = 1; i < lines.length; i++) {\n        const vals = parseLine(lines[i], dlm);\n        const row = {};\n        headers.forEach((h, idx) => row[h] = vals[idx] !== undefined ? vals[idx] : '');\n        out.push(transformRow(row, mapping));\n    }\n    return out;\n}\n\nfunction parseTXT(data) {\n    const text = new TextDecoder('utf-8').decode(data);\n    const lines = text.trim().split('\\n');\n    if (lines.length < 2) return [];\n    if (lines[0].includes('\\t')) return parseCSV(data);\n    const headers = lines[0].split(/\\s{2,}/).filter(h => h.trim());\n    const mapping = detectHeaders(headers);\n    const out = [];\n    for (let i = 1; i < lines.length; i++) {\n        const vals = lines[i].split(/\\s{2,}/).filter(v => v.trim());\n        const row = {};\n        headers.forEach((h, idx) => row[h] = vals[idx] !== undefined ? vals[idx] : '');\n        out.push(transformRow(row, mapping));\n    }\n    return out;\n}\n\nfunction parseLine(line, dlm) {\n    const res = [];\n    let cur = '', q = false;\n    for (let i = 0; i < line.length; i++) {\n        const c = line[i];\n        if (c === '\"') {\n            if (q && line[i + 1] === '\"') { cur += '\"'; i++; }\n            else { q = !q; }\n        } else if (c === dlm && !q) {\n            res.push(cur.trim());\n            cur = '';\n        } else {\n            cur += c;\n        }\n    }\n    res.push(cur.trim());\n    return res;\n}\n\nfunction detectHeaders(hdrs) {\n    const m = {};\n    const MAP = {\n        'KPJ': ['KPJ', 'OSS_KPJ', 'NO_KPJ', 'KPJTK', 'NOMOR_KPJ', 'NO.KPJ', 'KPJ_NO'],\n        'NIK': ['NIK', 'OSS_NIK', 'NO_KTP', 'NOMOR_NIK', 'NO.NIK', 'KTP', 'NO_KTP'],\n        'NAMA': ['NAMA', 'Nama', 'OSS_Nama', 'NAMA_OSS', 'NAMA_DPT', 'DPT_Nama', 'NAMA_LENGKAP', 'Nama_Lengkap'],\n        'TANGGAL LAHIR': ['TANGGAL LAHIR', 'TANGGAL_LAHIR', 'TGL_LAHIR', 'TGL LAHIR', 'OSS_Tanggal_Lahir', 'Tgl_Lahir', 'Tgl Lahir', 'TANGGALLAHIR'],\n        'KOTA': ['KOTA', 'KABUPATEN', 'DPT_Kabupaten', 'KAB/KOTA', 'KABUPATEN_KOTA', 'KABUPATENKOTA', 'KABUPATEN_KOTA'],\n        'STATUS LASIK': ['STATUS LASIK', 'LASIK_Pesan_Pengkinian', 'STATUS_LASIK', 'Status_LASIK', 'STATUSLASIK'],\n        'DETAIL LASIK': ['DETAIL LASIK', 'LASIK_DETAIL', 'LASIK_KETERANGAN', 'DETAIL_LASIK', 'DETAILLASIK', 'Detail_LASIK'],\n        'KATEGORI': ['KATEGORI', 'LASIK_Notif', 'KATEGORI_LASIK', 'KATEGORILASIK', 'Kategori'],\n        'SALDO LASIK': ['SALDO LASIK', 'LASIK_Saldo_JHT', 'SALDO', 'JHT', 'SALDO_JHT', 'SALDOJHT', 'LASIK_Saldo', 'SALDO_LASIK']\n    };\n    for (const [std, ps] of Object.entries(MAP)) {\n        for (const h of hdrs) {\n            const nh = norm(h);\n            if (ps.some(p => norm(p) === nh)) { m[std] = h; break; }\n        }\n    }\n    return m;\n}\n\nfunction norm(h) {\n    return String(h || '').toLowerCase().replace(/[_\\s\\.\\-]+/g, '').trim();\n}\n\nfunction procStatus(v) {\n    if (!v) return '';\n    const s = String(v).toUpperCase();\n    return s.includes('LAYAK') ? 'LAYAK' : '';\n}\nfunction procDetail(v) {\n    if (!v) return '';\n    const s = String(v);\n    return s.toLowerCase().includes('silahkan') ? s.replace(/<[^>]*>/g, ' ').replace(/\\s+/g, ' ').trim() : '';\n}\nfunction procKat(v) {\n    if (!v) return '';\n    return String(v).trim().toUpperCase() === 'JMO' ? 'JMO' : '';\n}\nfunction procSaldo(v) {\n    if (!v) return '';\n    const n = parseFloat(String(v).replace(/[^\\d.-]/g, ''));\n    return isNaN(n) ? '' : (n >= 1e6 ? ('Rp ' + n.toLocaleString('id-ID')) : '');\n}\n\nfunction transformRow(row, mapping) {\n    const r = {};\n    for (const [std, src] of Object.entries(mapping)) {\n        let v = row[src];\n        switch (std) {\n            case 'STATUS LASIK': r[std] = procStatus(v); break;\n            case 'DETAIL LASIK': r[std] = procDetail(v); break;\n            case 'KATEGORI': r[std] = procKat(v); break;\n            case 'SALDO LASIK': r[std] = procSaldo(v); break;\n            default: r[std] = v != null ? String(v).trim() : '';\n        }\n    }\n    return r;\n}\n";
+        this.init();
     }
-    renderAll();
-  }
-
-  function saveData() {
-    try {
-      localStorage.setItem('lasik_file1', JSON.stringify(file1Data));
-      localStorage.setItem('lasik_file2', JSON.stringify(file2Data));
-    } catch(e) {}
-  }
-
-  function switchTab(tab) {
-    currentTab = tab;
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.table-container').forEach(t => t.classList.remove('active'));
-    document.querySelector('.tab-btn[data-tab="' + tab + '"]').classList.add('active');
-    document.getElementById(tab === 'file1' ? 'tableFile1' : 'tableFile2').classList.add('active');
-    renderAll();
-  }
-
-  function renderAll() {
-    renderFile1();
-    renderFile2();
-    updateStats();
-    updateBadges();
-  }
-
-  function getFilteredData1() {
-    if (!searchQuery) return file1Data;
-    const q = searchQuery.toLowerCase();
-    return file1Data.filter(r => {
-      return (r.KPJ||'').toLowerCase().includes(q) ||
-             (r.Nama||'').toLowerCase().includes(q) ||
-             (r.NIK||'').toLowerCase().includes(q) ||
-             (r.Kota||'').toLowerCase().includes(q) ||
-             (r.Status_LASIK||'').toLowerCase().includes(q);
-    });
-  }
-
-  function getFilteredData2() {
-    if (!searchQuery) return file2Data;
-    const q = searchQuery.toLowerCase();
-    return file2Data.filter(r => {
-      return (r.OSS_KPJ||'').toLowerCase().includes(q) ||
-             (r.OSS_Nama||'').toLowerCase().includes(q) ||
-             (r.OSS_NIK||'').toLowerCase().includes(q) ||
-             (r.DPT_Kabupaten||'').toLowerCase().includes(q) ||
-             (r.LASIK_Notif||'').toLowerCase().includes(q);
-    });
-  }
-
-  function renderFile1() {
-    const data = getFilteredData1();
-    const tbody = document.getElementById('tbody1');
-    const empty = document.getElementById('empty1');
-    if (data.length === 0) {
-      tbody.innerHTML = '';
-      empty.style.display = 'block';
-      return;
-    }
-    empty.style.display = 'none';
-    let html = '';
-    for (let i = 0; i < data.length; i++) {
-      const r = data[i];
-      html += '<tr>' +
-        '<td>' + (i+1) + '</td>' +
-        '<td>' + esc(r.KPJ) + '</td>' +
-        '<td>' + esc(r.Nama) + '</td>' +
-        '<td>' + esc(r.NIK) + '</td>' +
-        '<td>' + esc(r.Tgl_Lahir) + '</td>' +
-        '<td>' + esc(r.Kota) + '</td>' +
-        '<td class="status-layak">' + esc(r.Status_LASIK) + '</td>' +
-        '<td class="detail-text" title="' + esc(r.Detail_LASIK||'') + '">' + esc(r.Detail_LASIK) + '</td>' +
-        '<td class="status-jmo">' + esc(r.Kategori) + '</td>' +
-        '<td class="saldo-cell">' + formatRupiah(r.Saldo_LASIK) + '</td>' +
-        '<td><button class="btn-copy" onclick="copyRowFile1(' + i + ')">📋 Salin</button></td>' +
-      '</tr>';
-    }
-    tbody.innerHTML = html;
-  }
-
-  function renderFile2() {
-    const data = getFilteredData2();
-    const tbody = document.getElementById('tbody2');
-    const empty = document.getElementById('empty2');
-    if (data.length === 0) {
-      tbody.innerHTML = '';
-      empty.style.display = 'block';
-      return;
-    }
-    empty.style.display = 'none';
-    let html = '';
-    for (let i = 0; i < data.length; i++) {
-      const r = data[i];
-      html += '<tr>' +
-        '<td>' + (i+1) + '</td>' +
-        '<td>' + esc(r.OSS_KPJ) + '</td>' +
-        '<td>' + esc(r.OSS_NIK) + '</td>' +
-        '<td>' + esc(r.OSS_Nama) + '</td>' +
-        '<td>' + esc(r.OSS_Tgl_Lahir) + '</td>' +
-        '<td>' + esc(r.OSS_Jenis_Kelamin) + '</td>' +
-        '<td>' + esc(r.DPT_Kabupaten) + '</td>' +
-        '<td class="status-jmo">' + esc(r.LASIK_Notif) + '</td>' +
-        '<td class="saldo-cell">' + formatRupiah(r.LASIK_Saldo_JHT) + '</td>' +
-        '<td>' + esc(r.LASIK_Jumlah_Kartu_JHT) + '</td>' +
-        '<td class="status-layak">' + esc(r.LASIK_Pesan_Pengkinian) + '</td>' +
-        '<td><button class="btn-copy" onclick="copyRowFile2(' + i + ')">📋 Salin</button></td>' +
-      '</tr>';
-    }
-    tbody.innerHTML = html;
-  }
-
-  function esc(s) {
-    if (s === null || s === undefined) return '';
-    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
-
-  function updateStats() {
-    const f1 = getFilteredData1();
-    const f2 = getFilteredData2();
-    const total = f1.length + f2.length;
-    const totalSaldo = f1.reduce((s,r) => s + (r.Saldo_LASIK||0), 0) + f2.reduce((s,r) => s + (r.LASIK_Saldo_JHT||0), 0);
-    document.getElementById('totalCount').textContent = total;
-    document.getElementById('filteredCount').textContent = total;
-    document.getElementById('totalSaldo').textContent = formatRupiahShort(totalSaldo);
-  }
-
-  function updateBadges() {
-    document.getElementById('badge1').textContent = file1Data.length;
-    document.getElementById('badge2').textContent = file2Data.length;
-  }
-
-  function formatRupiah(n) {
-    if (n === null || n === undefined || n === '') return '-';
-    return 'Rp ' + Number(n).toLocaleString('id-ID');
-  }
-  function formatRupiahShort(n) {
-    if (n >= 1000000000) return 'Rp ' + (n/1000000000).toFixed(1) + 'M';
-    if (n >= 1000000) return 'Rp ' + (n/1000000).toFixed(1) + 'JT';
-    return 'Rp ' + Number(n).toLocaleString('id-ID');
-  }
-
-  function searchData() {
-    searchQuery = document.getElementById('searchInput').value;
-    renderAll();
-  }
-  function clearSearch() {
-    document.getElementById('searchInput').value = '';
-    searchQuery = '';
-    renderAll();
-  }
-
-  function copyText(text) {
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(text).then(() => showToast('✅ Disalin!'));
-    } else {
-      const ta = document.createElement('textarea');
-      ta.value = text;
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand('copy');
-      document.body.removeChild(ta);
-      showToast('✅ Disalin!');
-    }
-  }
-  function copyRowFile1(idx) {
-    const r = getFilteredData1()[idx];
-    const text = [r.KPJ, r.Nama, r.NIK, r.Tgl_Lahir, r.Kota, r.Status_LASIK, r.Detail_LASIK, r.Kategori, r.Saldo_LASIK].join('\t');
-    copyText(text);
-  }
-  function copyRowFile2(idx) {
-    const r = getFilteredData2()[idx];
-    const text = [r.OSS_KPJ, r.OSS_NIK, r.OSS_Nama, r.OSS_Tgl_Lahir, r.OSS_Jenis_Kelamin, r.DPT_Kabupaten, r.LASIK_Notif, r.LASIK_Saldo_JHT, r.LASIK_Jumlah_Kartu_JHT, r.LASIK_Pesan_Pengkinian].join('\t');
-    copyText(text);
-  }
-  function copyCol(file, col) {
-    const data = file === 'file1' ? getFilteredData1() : getFilteredData2();
-    const texts = data.map(r => r[col] || '');
-    copyText(texts.join('\n'));
-  }
-  function copyAllFile1() {
-    const data = getFilteredData1();
-    if (data.length === 0) { showToast('⚠️ Tidak ada data'); return; }
-    const lines = data.map(r => [r.KPJ, r.Nama, r.NIK, r.Tgl_Lahir, r.Kota, r.Status_LASIK, r.Detail_LASIK, r.Kategori, r.Saldo_LASIK].join('\t'));
-    copyText(lines.join('\n'));
-  }
-  function copyAllFile2() {
-    const data = getFilteredData2();
-    if (data.length === 0) { showToast('⚠️ Tidak ada data'); return; }
-    const lines = data.map(r => [r.OSS_KPJ, r.OSS_NIK, r.OSS_Nama, r.OSS_Tgl_Lahir, r.OSS_Jenis_Kelamin, r.DPT_Kabupaten, r.LASIK_Notif, r.LASIK_Saldo_JHT, r.LASIK_Jumlah_Kartu_JHT, r.LASIK_Pesan_Pengkinian].join('\t'));
-    copyText(lines.join('\n'));
-  }
-
-  function handleUpload(e) {
-    const files = e.target.files;
-    if (!files.length) return;
-    let processed = 0;
-    for (let f of files) {
-      const reader = new FileReader();
-      reader.onload = function(ev) {
-        try {
-          const data = new Uint8Array(ev.target.result);
-          const text = new TextDecoder().decode(data);
-          const header = text.slice(0, 500).toLowerCase();
-          if (header.includes('kpj') && header.includes('nama') && (header.includes('status lasik') || header.includes('status_lasik'))) {
-            parseFile1CSV(text);
-          } else if (header.includes('oss_kpj') || header.includes('oss_nik')) {
-            parseFile2CSV(text);
-          } else {
-            parseGenericCSV(text);
-          }
-          processed++;
-          if (processed >= files.length) {
-            saveData();
-            renderAll();
-            showToast('✅ ' + files.length + ' file diproses!');
-          }
-        } catch(err) {
-          showToast('⚠️ Format tidak didukung: ' + f.name);
+    init() {
+        for (let i = 0; i < this.size; i++) {
+            const blob = new Blob([this.boot], { type: 'application/javascript' });
+            const url = URL.createObjectURL(blob);
+            this.workers.push({ worker: new Worker(url), busy: false });
         }
-      };
-      reader.readAsArrayBuffer(f);
     }
-    e.target.value = '';
-  }
-
-  function parseFile1CSV(text) {
-    const lines = text.split('\n').filter(l => l.trim());
-    for (let i = 1; i < lines.length; i++) {
-      const cols = lines[i].split('\t');
-      if (cols.length < 15) continue;
-      const saldo = parseFloat(cols[14]) || 0;
-      const status = (cols[10]||'').toUpperCase();
-      const detail = (cols[11]||'').toLowerCase();
-      const kategori = (cols[13]||'').toUpperCase();
-      if (status.includes('LAYAK') && detail.includes('silahkan') && kategori === 'JMO' && saldo >= 1000000) {
-        file1Data.push({
-          KPJ: cols[0]||'', Nama: cols[1]||'', NIK: cols[2]||'', Tgl_Lahir: cols[3]||'',
-          Kota: cols[5]||'', Status_LASIK: cols[10]||'', Detail_LASIK: cols[11]||'',
-          Kategori: cols[13]||'', Saldo_LASIK: saldo
+    async run(fileData, fileName, ext) {
+        return new Promise((resolve, reject) => {
+            this.queue.push({ fileData, fileName, ext, resolve, reject });
+            this.processQueue();
         });
-      }
     }
-  }
+    processQueue() {
+        if (!this.queue.length) return;
+        const slot = this.workers.find(w => !w.busy);
+        if (!slot) return;
+        const task = this.queue.shift();
+        slot.busy = true;
+        this.active++;
+        const handler = (e) => {
+            slot.worker.removeEventListener('message', handler);
+            slot.worker.removeEventListener('error', errorHandler);
+            slot.busy = false;
+            this.active--;
+            if (e.data.type === 'done') task.resolve(e.data.records);
+            else task.reject(new Error(e.data.error || 'Worker error'));
+            setTimeout(() => this.processQueue(), 0);
+        };
+        const errorHandler = (e) => {
+            slot.worker.removeEventListener('message', handler);
+            slot.worker.removeEventListener('error', errorHandler);
+            slot.busy = false;
+            this.active--;
+            task.reject(e);
+            setTimeout(() => this.processQueue(), 0);
+        };
+        slot.worker.addEventListener('message', handler);
+        slot.worker.addEventListener('error', errorHandler);
+        slot.worker.postMessage({ type: 'parse', fileData: task.fileData, fileName: task.fileName, ext: task.ext }, [task.fileData]);
+    }
+    terminate() {
+        this.workers.forEach(w => { w.worker.terminate(); URL.revokeObjectURL(w.worker._url); });
+        this.workers = [];
+    }
+}
 
-  function parseFile2CSV(text) {
-    const lines = text.split('\n').filter(l => l.trim());
-    for (let i = 1; i < lines.length; i++) {
-      const cols = lines[i].split('\t');
-      if (cols.length < 19) continue;
-      const saldo = parseFloat(cols[16]) || 0;
-      const notif = (cols[14]||'').toUpperCase();
-      const pesan = (cols[18]||'').toUpperCase();
-      if (notif === 'JMO' && saldo >= 1000000 && pesan === 'LAYAK') {
-        file2Data.push({
-          OSS_KPJ: cols[0]||'', OSS_NIK: cols[1]||'', OSS_Nama: cols[2]||'', OSS_Tgl_Lahir: cols[5]||'',
-          OSS_Jenis_Kelamin: cols[7]||'', DPT_Kabupaten: cols[11]||'', LASIK_Notif: cols[14]||'',
-          LASIK_Saldo_JHT: saldo, LASIK_Jumlah_Kartu_JHT: cols[17]||'', LASIK_Pesan_Pengkinian: cols[18]||''
+// ============================================
+// CLIPBOARD
+// ============================================
+const CB={
+    async copy(v,l){if(!v)return;const t=String(v).trim();try{if(navigator.clipboard&&navigator.clipboard.writeText){await navigator.clipboard.writeText(t);App.toast(l+' disalin!');return;}}catch(e){}const ta=document.createElement('textarea');ta.value=t;ta.style.cssText='position:fixed;left:-9999px;top:0;';document.body.appendChild(ta);try{ta.select();const s=document.execCommand('copy');document.body.removeChild(ta);App.toast(s?l+' disalin!':'Gagal menyalin',!s);}catch(e){document.body.removeChild(ta);App.toast('Gagal menyalin',true);}},
+    async copyAll(rec){const ln=[];if(rec.KPJ)ln.push('KPJ: '+rec.KPJ);if(rec.NAMA)ln.push('NAMA: '+rec.NAMA);if(rec.NIK)ln.push('NIK: '+rec.NIK);if(rec['TANGGAL LAHIR'])ln.push('TGL LAHIR: '+rec['TANGGAL LAHIR']);if(rec.KOTA)ln.push('KOTA: '+rec.KOTA);if(rec['STATUS LASIK'])ln.push('STATUS: '+rec['STATUS LASIK']);if(rec['DETAIL LASIK'])ln.push('DETAIL: '+rec['DETAIL LASIK']);if(rec.KATEGORI)ln.push('KATEGORI: '+rec.KATEGORI);if(rec['SALDO LASIK'])ln.push('SALDO: '+rec['SALDO LASIK']);const txt=ln.join('\n');try{if(navigator.clipboard&&navigator.clipboard.writeText){await navigator.clipboard.writeText(txt);App.toast('Semua data disalin!');return;}}catch(e){}this.copy(txt,'Semua data');}
+};
+
+// ============================================
+// SEARCH
+// ============================================
+const SR={
+    all:[],fil:[],q:'',busy:false,
+    init(rec){this.all=rec||[];this.fil=[];this.q='';},
+    async search(query){this.q=query;if(!query.trim()){this.fil=[];App.render();return;}if(this.busy)return;this.busy=true;const nq=query.toLowerCase().trim();const res=[];const CHK=5000;let idx=0;const proc=async()=>{const end=Math.min(idx+CHK,this.all.length);for(let i=idx;i<end;i++){if(this.match(this.all[i],nq))res.push(this.all[i]);}idx=end;if(idx<this.all.length){await U.yield();proc();}else{this.fil=res;this.busy=false;App.render();}};proc();},
+    match(rec,query){const f=[rec.KPJ,rec.NAMA,rec.NIK,rec['TANGGAL LAHIR'],rec.KOTA,rec['STATUS LASIK'],rec['DETAIL LASIK'],rec.KATEGORI,rec['SALDO LASIK']];return f.some(v=>v&&String(v).toLowerCase().includes(query));},
+    get(){return this.fil.length>0||this.q?this.fil:this.all;}
+};
+
+// ============================================
+// EXPORT
+// ============================================
+const EX={
+    async csv(){const rec=SR.get();if(!rec.length){App.toast('Tidak ada data','err');return;}const h=['KPJ','NAMA','NIK','TANGGAL LAHIR','KOTA','STATUS LASIK','DETAIL LASIK','KATEGORI','SALDO LASIK'];let csv='\uFEFF'+h.join(';')+'\n';const CHK=1000;for(let i=0;i<rec.length;i+=CHK){const c=rec.slice(i,i+CHK);for(const r of c){csv+=h.map(k=>{let v=String(r[k]||'');if(v.includes(';')||v.includes('"'))v='"'+v.replace(/"/g,'""')+'"';return v;}).join(';')+'\n';}if(i+CHK<rec.length)await U.yield();}this.dl(csv,'data-lasik.csv','text/csv;charset=utf-8;');App.toast('CSV: '+rec.length.toLocaleString('id-ID')+' baris');},
+    async xlsx(){const rec=SR.get();if(!rec.length){App.toast('Tidak ada data','err');return;}const h=['KPJ','NAMA','NIK','TANGGAL LAHIR','KOTA','STATUS LASIK','DETAIL LASIK','KATEGORI','SALDO LASIK'];const d=[h];const CHK=2000;for(let i=0;i<rec.length;i+=CHK){const c=rec.slice(i,i+CHK);for(const r of c)d.push(h.map(k=>r[k]||''));if(i+CHK<rec.length)await U.yield();}try{const ws=XLSX.utils.aoa_to_sheet(d);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Data LASIK');XLSX.writeFile(wb,'data-lasik.xlsx');App.toast('XLSX: '+rec.length.toLocaleString('id-ID')+' baris');}catch(e){App.toast('Gagal ekspor XLSX','err');}},
+    dl(c,f,m){const b=new Blob([c],{type:m});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=f;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(u);}
+};
+
+// ============================================
+// MAIN APP
+// ============================================
+const App = {
+    recs: [], pool: null, proc: false, rend: false, scrollOff: 0, failed: [],
+    el: {},
+
+    async init() {
+        this.cacheEl();
+        this.bindEv();
+        await DB.init();
+        await this.restore();
+        // Create worker pool with size based on CPU cores
+        this.pool = new WorkerPool(CFG.POOL_SIZE);
+    },
+
+    cacheEl() {
+        const g = id => document.getElementById(id);
+        this.el = {
+            drop: g('dropZone'), file: g('fileInput'), search: g('searchInput'), clear: g('searchClear'),
+            list: g('dataList'), empty: g('emptyState'), stats: g('headerStats'), ctrl: g('controlsSection'),
+            prog: g('progressContainer'), fill: g('progressFill'), ptxt: g('progressText'), pdet: g('progressDetail'),
+            err: g('errorLog'), errList: g('errorList'), errClose: g('errorClose'),
+            toast: g('toast'), btnClr: g('btnClearAll'), btnCSV: g('btnExportCSV'), btnXLSX: g('btnExportXLSX')
+        };
+    },
+
+    bindEv() {
+        const {drop, file, search, clear, btnClr, btnCSV, btnXLSX, errClose} = this.el;
+        drop.addEventListener('click', () => file.click());
+        file.addEventListener('change', e => this.handleFiles(e.target.files));
+        ['dragenter','dragover','dragleave','drop'].forEach(en => drop.addEventListener(en, e => {e.preventDefault();e.stopPropagation();}, false));
+        ['dragenter','dragover'].forEach(en => drop.addEventListener(en, () => drop.classList.add('dragover'), false));
+        ['dragleave','drop'].forEach(en => drop.addEventListener(en, () => drop.classList.remove('dragover'), false));
+        drop.addEventListener('drop', e => this.handleFiles(e.dataTransfer.files), false);
+        search.addEventListener('input', U.deb(e => {const q = e.target.value.trim(); clear.style.display = q ? 'flex' : 'none'; SR.search(q);}, 250));
+        clear.addEventListener('click', () => {search.value = ''; clear.style.display = 'none'; SR.search(''); search.blur();});
+        btnClr.addEventListener('click', () => this.clearAll());
+        btnCSV.addEventListener('click', () => EX.csv());
+        btnXLSX.addEventListener('click', () => EX.xlsx());
+        errClose.addEventListener('click', () => this.el.err.style.display = 'none');
+        let st; window.addEventListener('scroll', () => {if(st)clearTimeout(st); st=setTimeout(()=>this.onScroll(),16);}, {passive:true});
+        document.addEventListener('click', e => {const b=e.target.closest('.btn-copy'); if(b){e.preventDefault();e.stopPropagation(); CB.copy(b.dataset.v,b.dataset.l);}});
+        document.addEventListener('visibilitychange', () => {if(document.visibilityState==='hidden')this.saveState();});
+        window.addEventListener('beforeunload', () => this.saveState());
+    },
+
+    async saveState() {try{await DB.setMeta('scroll',window.scrollY);await DB.setMeta('q',this.el.search.value);}catch(e){}},
+
+    // ============================================
+    // PARALLEL FILE PROCESSING WITH WORKER POOL
+    // ============================================
+    async handleFiles(files) {
+        if(!files||!files.length||this.proc)return;
+        this.proc=true; this.failed=[];
+        this.el.prog.style.display='block'; this.el.err.style.display='none';
+
+        const valid = Array.from(files).filter(f => {
+            const e=f.name.split('.').pop().toLowerCase();
+            return['xlsx','xls','csv','txt'].includes(e);
         });
-      }
+        const total = valid.length;
+        let done = 0, totalRecs = 0;
+
+        // Launch all files in parallel via worker pool
+        const promises = valid.map(file => this.processFile(file, () => {
+            done++;
+            this.updateProg(done, total, totalRecs);
+        }));
+
+        // Wait for all to complete (results stream in as workers finish)
+        const results = await Promise.allSettled(promises);
+
+        // Aggregate results
+        for(const r of results){
+            if(r.status==='fulfilled' && r.value){
+                totalRecs += r.value.length;
+            }
+        }
+
+        this.el.prog.style.display='none'; this.proc=false;
+        if(this.failed.length) this.showErr(this.failed);
+
+        this.updStats();
+        SR.init(this.recs);
+        this.render();
+        this.el.file.value='';
+        if(totalRecs>0) this.toast(`${totalRecs.toLocaleString('id-ID')} data berhasil dimuat`);
+    },
+
+    async processFile(file, onProgress) {
+        const ext = file.name.split('.').pop().toLowerCase();
+        try {
+            // Read file as ArrayBuffer (main thread - fast)
+            const buf = await new Promise((ok,no)=>{
+                const r=new FileReader();
+                r.onload=e=>ok(e.target.result);
+                r.onerror=no;
+                r.readAsArrayBuffer(file);
+            });
+
+            // OFFLOAD parsing to Web Worker (parallel, non-blocking)
+            const records = await this.pool.run(buf, file.name, ext);
+
+            if(records && records.length>0){
+                // Append to memory immediately
+                this.recs.push(...records);
+
+                // INCREMENTAL DB write - only new data, NO clear!
+                await DB.addBatch(records);
+
+                // INCREMENTAL RENDER - show data immediately without waiting
+                this.renderIncremental(records);
+            }
+
+            onProgress();
+            return records;
+        } catch(err) {
+            this.failed.push({name:file.name, error:err.message});
+            onProgress();
+            return [];
+        }
+    },
+
+    updateProg(cur,tot,cum){
+        const pct=Math.round((cur/tot)*100);
+        this.el.fill.style.width=pct+'%';
+        this.el.ptxt.textContent=`Memproses ${cur}/${tot} file (${pct}%)`;
+        this.el.pdet.textContent=`${this.recs.length.toLocaleString('id-ID')} data ditemukan`;
+    },
+
+    showErr(errs){
+        this.el.errList.innerHTML=errs.map(f=>`<li>${U.esc(f.name)} &mdash; ${U.esc(f.error)}</li>`).join('');
+        this.el.err.style.display='block';
+    },
+
+    // ============================================
+    // INCREMENTAL RENDERING
+    // ============================================
+    renderIncremental(newRecs){
+        // Don't interfere if user is searching or scrolled down
+        if(window.scrollY > 100 || SR.q) return;
+
+        const frag = document.createDocumentFragment();
+        const startIdx = this.recs.length - newRecs.length;
+
+        for(let i=0; i<newRecs.length; i++){
+            const idx = startIdx + i;
+            const card = this.makeCard(newRecs[i], idx);
+            card.style.marginBottom = '10px';
+            frag.appendChild(card);
+        }
+
+        // Append to list directly (bypass virtual scroll for incremental updates)
+        const list = this.el.list;
+        if(list.children.length === 0 || !list.querySelector('[style*="position:absolute"]')){
+            list.appendChild(frag);
+        }
+        // If virtual scroll is active, just update stats - user sees on next scroll/render
+
+        this.el.empty.style.display = 'none';
+    },
+
+    // ============================================
+    // VIRTUAL SCROLLING (for large datasets)
+    // ============================================
+    render(){
+        const rec=SR.get(); 
+        if(!rec.length){
+            this.el.list.innerHTML='';
+            this.el.empty.style.display=this.recs.length>0?'none':'block';
+            if(this.recs.length>0&&SR.q){
+                this.el.list.innerHTML='<div class="empty-state"><p>Tidak ditemukan</p><p class="empty-sub">Coba kata kunci lain</p></div>';
+            }
+            return;
+        }
+        this.el.empty.style.display='none';
+        const st=window.scrollY;
+        const si=Math.max(0,Math.floor(st/CFG.ITEM_HEIGHT)-5);
+        const ei=Math.min(rec.length,si+CFG.VISIBLE_COUNT+10);
+        const th=rec.length*CFG.ITEM_HEIGHT;
+        const frag=document.createDocumentFragment();
+        const box=document.createElement('div'); box.style.cssText='position:relative;height:'+th+'px';
+        for(let i=si;i<ei;i++){const c=this.makeCard(rec[i],i);c.style.cssText='position:absolute;top:'+(i*CFG.ITEM_HEIGHT)+'px;left:0;right:0';box.appendChild(c);}
+        frag.appendChild(box); this.el.list.innerHTML=''; this.el.list.appendChild(frag); this.rend=false;
+    },
+
+    makeCard(rec,idx){
+        const c=document.createElement('div'); c.className='data-card'; c.dataset.i=idx;
+        let h='';
+        if(rec.KPJ)h+=this.copyRow('KPJ',rec.KPJ,'KPJ');
+        if(rec.NAMA)h+=this.copyRow('NAMA',rec.NAMA,'Nama');
+        if(rec.NIK)h+=this.copyRow('NIK',rec.NIK,'NIK');
+        if(rec['TANGGAL LAHIR'])h+=this.copyRow('TANGGAL LAHIR',rec['TANGGAL LAHIR'],'Tanggal Lahir');
+        if(rec.KOTA)h+=`<div class="card-row"><span class="card-label">KOTA</span><span class="card-value">${U.esc(rec.KOTA)}</span></div>`;
+        if(rec['STATUS LASIK'])h+=`<div class="card-row"><span class="card-label">STATUS LASIK</span><span class="card-value ok">${U.esc(rec['STATUS LASIK'])}</span></div>`;
+        if(rec['DETAIL LASIK'])h+=`<div class="card-row"><span class="card-label">DETAIL LASIK</span><span class="card-value">${U.esc(rec['DETAIL LASIK'])}</span></div>`;
+        if(rec.KATEGORI)h+=`<div class="card-row"><span class="card-label">KATEGORI</span><span class="card-value hl">${U.esc(rec.KATEGORI)}</span></div>`;
+        if(rec['SALDO LASIK'])h+=`<div class="card-row"><span class="card-label">SALDO LASIK</span><span class="card-value money">${U.esc(rec['SALDO LASIK'])}</span></div>`;
+        h+=`<div style="margin-top:8px;text-align:center"><button class="btn-copy-all" data-i="${idx}">Salin Semua Data</button></div>`;
+        c.innerHTML=h;
+        const ca=c.querySelector('.btn-copy-all');
+        if(ca)ca.addEventListener('click',e=>{e.stopPropagation();CB.copyAll(rec);});
+        return c;
+    },
+
+    copyRow(l,v,cl){return`<div class="card-row copy-row"><span class="card-label">${l}</span><div style="display:flex;align-items:center;gap:8px"><span class="card-value">${U.esc(v)}</span><button class="btn-copy" data-v="${U.esc(v)}" data-l="${cl}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Salin</button></div></div>`;},
+
+    onScroll(){
+        if(this.rend)return;
+        const st=window.scrollY;
+        if(Math.abs(st-this.scrollOff)>CFG.ITEM_HEIGHT*5){
+            this.scrollOff=st; this.rend=true;
+            requestAnimationFrame(()=>this.render());
+        }
+    },
+
+    async restore(){
+        try{
+            const cnt=await DB.count();
+            if(cnt>0){
+                this.recs=await DB.getAll();
+                this.updStats();
+                const sq=await DB.getMeta('q');
+                if(sq){this.el.search.value=sq;this.el.clear.style.display='flex';SR.init(this.recs);SR.search(sq);}
+                else{SR.init(this.recs);this.render();}
+                const ss=await DB.getMeta('scroll');
+                if(ss)setTimeout(()=>window.scrollTo(0,ss),100);
+            }
+        }catch(e){console.error('Restore failed',e);}
+    },
+
+    updStats(){
+        const c=this.recs.length;
+        this.el.stats.innerHTML=c>0?`<div>${c.toLocaleString('id-ID')} data</div>`:'';
+        this.el.ctrl.style.display=c>0?'flex':'none';
+        this.el.empty.style.display=c>0?'none':'block';
+    },
+
+    async clearAll(){
+        if(!confirm('Hapus semua data?'))return;
+        this.recs=[]; SR.init([]);
+        await DB.clear();
+        this.el.search.value=''; this.el.clear.style.display='none';
+        this.el.list.innerHTML=''; this.el.err.style.display='none';
+        this.updStats(); this.toast('Semua data dihapus');
+    },
+
+    toast(m,err){
+        const t=this.el.toast; t.textContent=m;
+        t.className='toast show '+(err?'err':'ok');
+        setTimeout(()=>t.classList.remove('show'),2500);
     }
-  }
+};
 
-  function parseGenericCSV(text) {
-    const header = text.slice(0, 200).toLowerCase();
-    if (header.includes('kpj') && header.includes('status lasik')) {
-      parseFile1CSV(text);
-    } else if (header.includes('oss_kpj')) {
-      parseFile2CSV(text);
-    } else {
-      showToast('⚠️ Format file tidak dikenali');
-    }
-  }
-
-  function clearAllData() {
-    if (!confirm('Yakin hapus SEMUA data? Data akan hilang permanen.')) return;
-    file1Data = [];
-    file2Data = [];
-    saveData();
-    renderAll();
-    showToast('🗑️ Semua data dihapus');
-  }
-
-  function showToast(msg) {
-    const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.classList.add('show');
-    setTimeout(() => t.classList.remove('show'), 2500);
-  }
-
-  init();
+// Init
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>App.init());
+else App.init();
 </script>
 </body>
 </html>
