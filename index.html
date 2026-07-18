@@ -209,6 +209,7 @@
   .badge-green { background: #d1f2e1; color: var(--success); }
   .badge-blue { background: #cce5ff; color: var(--primary-dark); }
   .badge-orange { background: #ffe5cc; color: #e67e00; }
+  .badge-red { background: #f8d7da; color: var(--danger); }
   .card-body {
     padding: 12px 16px;
     display: grid;
@@ -401,6 +402,42 @@
     font-size: 12px;
     font-weight: 600;
   }
+  .dup-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #fff3cd;
+    color: #856404;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 600;
+    margin-left: 6px;
+  }
+  .dup-removed {
+    opacity: 0.6;
+    background: #fff8f8;
+  }
+  .dup-removed .card-header {
+    border-bottom-color: #f5c6cb;
+  }
+  .stats-row {
+    display: flex;
+    gap: 12px;
+    padding: 0 16px;
+    margin-bottom: 12px;
+  }
+  .stat-pill {
+    background: white;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    box-shadow: var(--shadow);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .stat-pill .num { font-weight: 700; color: var(--primary); }
   @media (min-width: 768px) {
     .cards-container {
       display: grid;
@@ -410,7 +447,7 @@
       margin: 0 auto;
       padding: 0 24px;
     }
-    .upload-section, .toolbar {
+    .upload-section, .toolbar, .stats-row {
       max-width: 1200px;
       margin-left: auto;
       margin-right: auto;
@@ -426,6 +463,7 @@
     <div class="header-stats">
       <div class="header-stat"><span class="num" id="statTotal">0</span> Total</div>
       <div class="header-stat"><span class="num" id="statValid">0</span> Valid</div>
+      <div class="header-stat"><span class="num" id="statDup">0</span> Duplikat</div>
     </div>
   </div>
   <div class="progress-bar">
@@ -445,6 +483,13 @@
   </div>
   <input type="file" id="fileInput" accept=".xlsx,.xls" multiple onchange="handleFiles(this.files)">
   <div class="file-list" id="fileList"></div>
+</div>
+
+<div class="stats-row" id="statsRow" style="display:none;">
+  <div class="stat-pill"><span class="num" id="pillTotal">0</span> Total Masuk</div>
+  <div class="stat-pill"><span class="num" id="pillValid">0</span> Valid</div>
+  <div class="stat-pill"><span class="num" id="pillDup">0</span> NIK Duplikat</div>
+  <div class="stat-pill"><span class="num" id="pillRemoved">0</span> Dihapus</div>
 </div>
 
 <div class="toolbar">
@@ -496,6 +541,7 @@
 let allData = [];
 let filteredData = [];
 let sortOrder = 'desc';
+let dupRemovedCount = 0;
 
 document.addEventListener('DOMContentLoaded', () => {
   const saved = localStorage.getItem('kpjData');
@@ -560,25 +606,46 @@ function processExcelData(rows) {
   const headers = rows[0].map(h => String(h).trim());
   const colMap = {};
   headers.forEach((h, i) => { colMap[h] = i; });
+
   let added = 0;
+  let dupSkipped = 0;
   const existingKpj = new Set(allData.map(d => d.KPJ));
+  const existingNik = new Set(allData.map(d => d.NIK));
+  const newItems = [];
+
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i];
     if (!row || row.length < 3) continue;
+
     const detailLasik = String(row[colMap['Detail LASIK']] || '');
     const jmo = String(row[colMap['Jamsostek Mobile']] || '');
+
     if (!detailLasik.includes('Silahkan Gunakan JMO') || !jmo.includes('Silahkan melanjutkan pendaftaran')) {
       continue;
     }
+
     const kpj = String(row[colMap['KPJ']] || '').trim();
-    if (!kpj || existingKpj.has(kpj)) continue;
+    const nik = String(row[colMap['NIK']] || '').trim();
+
+    if (!kpj || !nik) continue;
+
+    if (existingKpj.has(kpj)) continue;
+
+    if (existingNik.has(nik)) {
+      dupSkipped++;
+      continue;
+    }
+
     existingKpj.add(kpj);
+    existingNik.add(nik);
+
     const alamatRaw = String(row[colMap['Alamat']] || '');
     const kabupaten = extractKabupaten(alamatRaw);
+
     const item = {
       KPJ: kpj,
       Nama: String(row[colMap['Nama']] || '').trim(),
-      NIK: String(row[colMap['NIK']] || '').trim(),
+      NIK: nik,
       'Jenis Identitas': 'KTP',
       'Tanggal Lahir': String(row[colMap['Tanggal Lahir']] || ''),
       Alamat: kabupaten,
@@ -593,15 +660,24 @@ function processExcelData(rows) {
       'Jamsostek Mobile': jmo,
       _timestamp: Date.now()
     };
-    allData.push(item);
+
+    newItems.push(item);
     added++;
   }
+
+  allData = [...newItems, ...allData];
+  dupRemovedCount += dupSkipped;
+
   allData.sort((a, b) => b._timestamp - a._timestamp);
   filteredData = [...allData];
+
   saveData();
   renderCards();
   updateStats();
-  showToast(`${added} data valid ditambahkan`);
+
+  let msg = `${added} data valid ditambahkan`;
+  if (dupSkipped > 0) msg += `, ${dupSkipped} NIK duplikat dihapus`;
+  showToast(msg);
 }
 
 function extractKabupaten(alamat) {
@@ -782,6 +858,16 @@ function applySort() {
 function updateStats() {
   document.getElementById('statTotal').textContent = allData.length;
   document.getElementById('statValid').textContent = allData.length;
+  document.getElementById('statDup').textContent = dupRemovedCount;
+
+  if (allData.length > 0) {
+    document.getElementById('statsRow').style.display = 'flex';
+    document.getElementById('pillTotal').textContent = allData.length + dupRemovedCount;
+    document.getElementById('pillValid').textContent = allData.length;
+    document.getElementById('pillDup').textContent = dupRemovedCount;
+    document.getElementById('pillRemoved').textContent = dupRemovedCount;
+  }
+
   const pct = allData.length > 0 ? 100 : 0;
   document.getElementById('progressFill').style.width = pct + '%';
 }
@@ -790,11 +876,12 @@ function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2000);
+  setTimeout(() => t.classList.remove('show'), 2500);
 }
 
 function saveData() {
   localStorage.setItem('kpjData', JSON.stringify(allData));
+  localStorage.setItem('kpjDupCount', String(dupRemovedCount));
 }
 
 function openModal(kpj) {
