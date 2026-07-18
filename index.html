@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>KPJ Bulk Validator</title>
+<style>
+  :root {
+    --primary: #0d6efd;
+    --primary-dark: #0b5ed7;
+    --success: #198754;
+    --danger: #dc3545;
+    --warning: #ffc107;
+    --info: #0dcaf0;
+    --light: #f8f9fa;
+    --dark: #212529;
+    --gray: #6c757d;
+    --gray-light: #e9ecef;
+    --card-bg: #ffffff;
+    --body-bg: #f0f2f5;
+    --shadow: 0 2px 8px rgba(0,0,0,0.08);
+    --shadow-hover: 0 4px 16px rgba(0,0,0,0.12);
+    --radius: 12px;
+    --radius-sm: 8px;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: var(--font);
+    background: var(--body-bg);
+    color: var(--dark);
+    min-height: 100vh;
+    padding-bottom: 20px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .header {
+    background: linear-gradient(135deg, var(--primary) 0%, #1a53ff 100%);
+    color: white;
+    padding: 16px 20px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: var(--shadow);
+  }
+  .header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .header h1 {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+  }
+  .header-stats {
+    display: flex;
+    gap: 16px;
+    font-size: 12px;
+    opacity: 0.9;
+  }
+  .header-stat { display: flex; align-items: center; gap: 4px; }
+  .header-stat .num { font-weight: 700; font-size: 14px; }
+  .progress-bar {
+    width: 100%;
+    height: 4px;
+    background: rgba(255,255,255,0.25);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 8px;
+  }
+  .progress-fill {
+    height: 100%;
+    background: #fff;
+    border-radius: 2px;
+    transition: width 0.4s ease;
+    width: 0%;
+  }
+  .upload-section {
+    padding: 16px 20px;
+    background: var(--card-bg);
+    margin: 12px 16px;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+  .upload-area {
+    border: 2px dashed var(--gray-light);
+    border-radius: var(--radius-sm);
+    padding: 28px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--light);
+  }
+  .upload-area:hover, .upload-area.dragover {
+    border-color: var(--primary);
+    background: #e7f0ff;
+  }
+  .upload-area svg {
+    width: 40px; height: 40px;
+    color: var(--primary);
+    margin-bottom: 8px;
+  }
+  .upload-area p { font-size: 13px; color: var(--gray); }
+  .upload-area .btn-text { color: var(--primary); font-weight: 600; }
+  .file-list {
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .file-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--light);
+    padding: 8px 12px;
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+  }
+  .file-chip .fname { flex: 1; font-weight: 500; }
+  .file-chip .fsize { color: var(--gray); }
+  .file-chip .fstatus { font-size: 11px; padding: 2px 8px; border-radius: 10px; }
+  .fstatus.done { background: #d1f2e1; color: var(--success); }
+  .fstatus.processing { background: #fff3cd; color: var(--warning); }
+  .file-chip .remove { color: var(--danger); cursor: pointer; font-size: 16px; padding: 0 4px; }
+  .toolbar {
+    padding: 0 16px;
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .search-box {
+    flex: 1;
+    position: relative;
+  }
+  .search-box input {
+    width: 100%;
+    padding: 10px 12px 10px 36px;
+    border: 1px solid var(--gray-light);
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    outline: none;
+    transition: border 0.2s;
+  }
+  .search-box input:focus { border-color: var(--primary); }
+  .search-box svg {
+    position: absolute;
+    left: 10px; top: 50%;
+    transform: translateY(-50%);
+    width: 16px; height: 16px;
+    color: var(--gray);
+  }
+  .filter-btn {
+    padding: 10px 14px;
+    border: 1px solid var(--gray-light);
+    background: white;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .cards-container {
+    padding: 0 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .card {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+    animation: fadeInUp 0.3s ease both;
+  }
+  .card:active { transform: scale(0.98); }
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .card-header {
+    padding: 14px 16px 10px;
+    border-bottom: 1px solid var(--gray-light);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+  .card-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--dark);
+    line-height: 1.3;
+  }
+  .card-sub {
+    font-size: 12px;
+    color: var(--gray);
+    margin-top: 2px;
+  }
+  .card-badge {
+    font-size: 10px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .badge-green { background: #d1f2e1; color: var(--success); }
+  .badge-blue { background: #cce5ff; color: var(--primary-dark); }
+  .badge-orange { background: #ffe5cc; color: #e67e00; }
+  .card-body {
+    padding: 12px 16px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .field.full { grid-column: 1 / -1; }
+  .field-label {
+    font-size: 10px;
+    color: var(--gray);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    font-weight: 600;
+  }
+  .field-value {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--dark);
+    word-break: break-word;
+  }
+  .field-value.large {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--primary-dark);
+  }
+  .copy-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .copy-btn {
+    padding: 3px 10px;
+    border: 1px solid var(--primary);
+    color: var(--primary);
+    background: transparent;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .copy-btn:active {
+    background: var(--primary);
+    color: white;
+  }
+  .copy-btn.copied {
+    background: var(--success);
+    border-color: var(--success);
+    color: white;
+  }
+  .fallback-section {
+    grid-column: 1 / -1;
+    margin-top: 4px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--gray-light);
+  }
+  .fallback-btn-card {
+    width: 100%;
+    padding: 10px;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: linear-gradient(135deg, var(--primary) 0%, #1a53ff 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .fallback-btn-card:active {
+    opacity: 0.85;
+    transform: scale(0.98);
+  }
+  .fallback-btn-card.copied {
+    background: var(--success);
+  }
+  .toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--dark);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 24px;
+    font-size: 13px;
+    font-weight: 500;
+    z-index: 200;
+    opacity: 0;
+    transition: all 0.3s ease;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  .toast.show {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--gray);
+  }
+  .empty-state svg {
+    width: 64px; height: 64px;
+    color: var(--gray-light);
+    margin-bottom: 16px;
+  }
+  .empty-state h3 { font-size: 16px; margin-bottom: 6px; color: var(--dark); }
+  .empty-state p { font-size: 13px; }
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 150;
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal-sheet {
+    background: white;
+    width: 100%;
+    max-height: 80vh;
+    border-radius: var(--radius) var(--radius) 0 0;
+    padding: 16px 0;
+    animation: slideUp 0.25s ease;
+    overflow-y: auto;
+  }
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+  .modal-header {
+    padding: 0 20px 12px;
+    border-bottom: 1px solid var(--gray-light);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .modal-header h3 { font-size: 16px; }
+  .modal-close { font-size: 24px; color: var(--gray); cursor: pointer; background: none; border: none; }
+  .modal-body { padding: 12px 20px; }
+  .modal-item {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--gray-light);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .modal-item:last-child { border-bottom: none; }
+  .modal-item-label { font-size: 13px; color: var(--gray); }
+  .modal-item-value { font-size: 14px; font-weight: 600; }
+  .progress-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(255,255,255,0.9);
+    z-index: 300;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+  }
+  .progress-overlay.show { display: flex; }
+  .spinner {
+    width: 40px; height: 40px;
+    border: 3px solid var(--gray-light);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .progress-overlay p { font-size: 14px; color: var(--gray); }
+  #fileInput { display: none; }
+  .kabupaten-tag {
+    display: inline-block;
+    background: #e7f0ff;
+    color: var(--primary-dark);
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  @media (min-width: 768px) {
+    .cards-container {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+    .upload-section, .toolbar {
+      max-width: 1200px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <h1>KPJ Bulk Validator</h1>
+    <div class="header-stats">
+      <div class="header-stat"><span class="num" id="statTotal">0</span> Total</div>
+      <div class="header-stat"><span class="num" id="statValid">0</span> Valid</div>
+    </div>
+  </div>
+  <div class="progress-bar">
+    <div class="progress-fill" id="progressFill"></div>
+  </div>
+</div>
+
+<div class="upload-section">
+  <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+      <polyline points="17 8 12 3 7 8"/>
+      <line x1="12" y1="3" x2="12" y2="15"/>
+    </svg>
+    <p>Klik atau seret file Excel (.xlsx) ke sini</p>
+    <p class="btn-text">Pilih File</p>
+  </div>
+  <input type="file" id="fileInput" accept=".xlsx,.xls" multiple onchange="handleFiles(this.files)">
+  <div class="file-list" id="fileList"></div>
+</div>
+
+<div class="toolbar">
+  <div class="search-box">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+    </svg>
+    <input type="text" id="searchInput" placeholder="Cari nama, NIK, KPJ..." oninput="filterData()">
+  </div>
+  <button class="filter-btn" onclick="toggleSort()">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="21" y1="10" x2="3" y2="10"/><line x1="18" y1="6" x2="6" y2="6"/><line x1="15" y1="14" x2="3" y2="14"/><line x1="12" y1="18" x2="3" y2="18"/>
+    </svg>
+    <span id="sortLabel">Terbaru</span>
+  </button>
+</div>
+
+<div class="cards-container" id="cardsContainer">
+  <div class="empty-state" id="emptyState">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+      <polyline points="14 2 14 8 20 8"/>
+      <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
+    </svg>
+    <h3>Belum ada data</h3>
+    <p>Upload file Excel untuk memulai validasi data KPJ</p>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+  <div class="modal-sheet" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Detail Lengkap</h3>
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<div class="progress-overlay" id="progressOverlay">
+  <div class="spinner"></div>
+  <p id="progressText">Memproses file...</p>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+let allData = [];
+let filteredData = [];
+let sortOrder = 'desc';
+
+document.addEventListener('DOMContentLoaded', () => {
+  const saved = localStorage.getItem('kpjData');
+  if (saved) {
+    try {
+      allData = JSON.parse(saved);
+      filteredData = [...allData];
+      renderCards();
+      updateStats();
+    } catch(e) { console.error('Restore failed', e); }
+  }
+  const uploadArea = document.getElementById('uploadArea');
+  uploadArea.addEventListener('dragover', (e) => { e.preventDefault(); uploadArea.classList.add('dragover'); });
+  uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
+  uploadArea.addEventListener('drop', (e) => {
+    e.preventDefault();
+    uploadArea.classList.remove('dragover');
+    handleFiles(e.dataTransfer.files);
+  });
+});
+
+function handleFiles(files) {
+  if (!files || files.length === 0) return;
+  const fileList = document.getElementById('fileList');
+  Array.from(files).forEach(file => {
+    if (!file.name.match(/\.(xlsx|xls)$/i)) {
+      showToast('Hanya file Excel yang didukung');
+      return;
+    }
+    const chip = document.createElement('div');
+    chip.className = 'file-chip';
+    chip.innerHTML = `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0d6efd" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      <span class="fname">${file.name}</span>
+      <span class="fsize">${(file.size/1024).toFixed(1)} KB</span>
+      <span class="fstatus processing">Memproses...</span>
+      <span class="remove" onclick="this.parentElement.remove()">&times;</span>
+    `;
+    fileList.appendChild(chip);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+        processExcelData(jsonData);
+        chip.querySelector('.fstatus').className = 'fstatus done';
+        chip.querySelector('.fstatus').textContent = 'Selesai';
+      } catch (err) {
+        chip.querySelector('.fstatus').style.cssText = 'background:#f8d7da;color:#dc3545;';
+        chip.querySelector('.fstatus').textContent = 'Gagal';
+        showToast('Gagal memproses: ' + file.name);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+function processExcelData(rows) {
+  if (rows.length < 2) return;
+  const headers = rows[0].map(h => String(h).trim());
+  const colMap = {};
+  headers.forEach((h, i) => { colMap[h] = i; });
+  let added = 0;
+  const existingKpj = new Set(allData.map(d => d.KPJ));
+  for (let i = 1; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row || row.length < 3) continue;
+    const detailLasik = String(row[colMap['Detail LASIK']] || '');
+    const jmo = String(row[colMap['Jamsostek Mobile']] || '');
+    if (!detailLasik.includes('Silahkan Gunakan JMO') || !jmo.includes('Silahkan melanjutkan pendaftaran')) {
+      continue;
+    }
+    const kpj = String(row[colMap['KPJ']] || '').trim();
+    if (!kpj || existingKpj.has(kpj)) continue;
+    existingKpj.add(kpj);
+    const alamatRaw = String(row[colMap['Alamat']] || '');
+    const kabupaten = extractKabupaten(alamatRaw);
+    const item = {
+      KPJ: kpj,
+      Nama: String(row[colMap['Nama']] || '').trim(),
+      NIK: String(row[colMap['NIK']] || '').trim(),
+      'Jenis Identitas': 'KTP',
+      'Tanggal Lahir': String(row[colMap['Tanggal Lahir']] || ''),
+      Alamat: kabupaten,
+      'Alamat Raw': alamatRaw,
+      Perusahaan: '',
+      Segmen: '',
+      'Tanggal Nonaktif': String(row[colMap['Tanggal Nonaktif']] || ''),
+      'Total Saldo': String(row[colMap['Total Saldo']] || ''),
+      'Jumlah Kartu': String(row[colMap['Jumlah Kartu']] || ''),
+      'Status LASIK': 'LAYAK',
+      'Detail LASIK': detailLasik,
+      'Jamsostek Mobile': jmo,
+      _timestamp: Date.now()
+    };
+    allData.push(item);
+    added++;
+  }
+  allData.sort((a, b) => b._timestamp - a._timestamp);
+  filteredData = [...allData];
+  saveData();
+  renderCards();
+  updateStats();
+  showToast(`${added} data valid ditambahkan`);
+}
+
+function extractKabupaten(alamat) {
+  if (!alamat || alamat === 'ALAMAT TIDAK ADA') return 'TIDAK ADA';
+  const up = alamat.toUpperCase();
+  let m = up.match(/KAB\.\s*([A-Z\s]+?)(?:,|\s+PROV\.|$)/);
+  if (m) return toTitleCase(m[1].trim());
+  m = up.match(/KOTA\s+([A-Z\s]+?)(?:,|\s+PROV\.|$)/);
+  if (m) return 'KOTA ' + toTitleCase(m[1].trim());
+  m = up.match(/KABUPATEN\s+([A-Z\s]+?)(?:,|\s+PROV\.|$)/);
+  if (m) return toTitleCase(m[1].trim());
+  m = up.match(/([A-Z]+)\s+(?:JAWA\s+(?:TENGAH|BARAT|TIMUR)|SUMATERA\s+(?:UTARA|SELATAN|BARAT)|SULAWESI\s+(?:TENGAH|SELATAN|UTARA)|KALIMANTAN\s+(?:TIMUR|SELATAN|BARAT|UTARA|TENGAH)|BALI|RIAU|LAMPUNG|BANTEN|PAPUA|NTB|NTT|YOGYAKARTA|DKI\s+JAKARTA)/);
+  if (m) return toTitleCase(m[1].trim());
+  return 'TIDAK ADA';
+}
+
+function toTitleCase(str) {
+  return str.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function renderCards() {
+  const container = document.getElementById('cardsContainer');
+  const empty = document.getElementById('emptyState');
+  if (filteredData.length === 0) {
+    container.innerHTML = '';
+    container.appendChild(empty);
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  container.innerHTML = '';
+  filteredData.forEach((item, idx) => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.style.animationDelay = `${idx * 0.03}s`;
+    const fallbackText = fallbackFormat(item);
+    card.innerHTML = `
+      <div class="card-header">
+        <div>
+          <div class="card-title">${item.Nama}</div>
+          <div class="card-sub">${item.KPJ} &bull; ${item.NIK}</div>
+        </div>
+        <div class="card-badge badge-blue">Valid</div>
+      </div>
+      <div class="card-body">
+        <div class="field full">
+          <span class="field-label">Alamat</span>
+          <span class="field-value"><span class="kabupaten-tag">${item.Alamat}</span></span>
+        </div>
+        <div class="field">
+          <span class="field-label">NIK</span>
+          <div class="copy-row">
+            <span class="field-value">${item.NIK}</span>
+            <button class="copy-btn" onclick="copyText('${item.NIK}', this)">Salin</button>
+          </div>
+        </div>
+        <div class="field">
+          <span class="field-label">KPJ</span>
+          <div class="copy-row">
+            <span class="field-value">${item.KPJ}</span>
+            <button class="copy-btn" onclick="copyText('${item.KPJ}', this)">Salin</button>
+          </div>
+        </div>
+        <div class="field">
+          <span class="field-label">Nama</span>
+          <div class="copy-row">
+            <span class="field-value">${item.Nama}</span>
+            <button class="copy-btn" onclick="copyText('${item.Nama}', this)">Salin</button>
+          </div>
+        </div>
+        <div class="field">
+          <span class="field-label">Tanggal Lahir</span>
+          <div class="copy-row">
+            <span class="field-value">${item['Tanggal Lahir']}</span>
+            <button class="copy-btn" onclick="copyText('${item['Tanggal Lahir']}', this)">Salin</button>
+          </div>
+        </div>
+        <div class="field">
+          <span class="field-label">Total Saldo</span>
+          <span class="field-value large">${item['Total Saldo'] || '-'}</span>
+        </div>
+        <div class="field">
+          <span class="field-label">Jumlah Kartu</span>
+          <span class="field-value">${item['Jumlah Kartu'] || '-'}</span>
+        </div>
+        <div class="field">
+          <span class="field-label">Status LASIK</span>
+          <span class="field-value"><span class="kabupaten-tag" style="background:#d1f2e1;color:#198754;">${item['Status LASIK']}</span></span>
+        </div>
+        <div class="field full">
+          <span class="field-label">Detail LASIK</span>
+          <span class="field-value" style="font-size:12px;color:var(--gray);">${item['Detail LASIK']}</span>
+        </div>
+        <div class="field full">
+          <span class="field-label">Jamsostek Mobile</span>
+          <span class="field-value" style="font-size:12px;color:var(--gray);">${item['Jamsostek Mobile']}</span>
+        </div>
+        <div class="fallback-section">
+          <button class="fallback-btn-card" onclick="copyFallback(this, \`${escapeHtml(fallbackText)}\`)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            </svg>
+            Salin Semua Data
+          </button>
+        </div>
+      </div>
+    `;
+    container.appendChild(card);
+  });
+}
+
+function escapeHtml(text) {
+  return text
+    .replace(/\\/g, '\\\\')
+    .replace(/`/g, '\\`')
+    .replace(/\$/g, '\\$');
+}
+
+function fallbackFormat(item) {
+  return `*${item.Alamat}*\n${item.NIK}\n${item['Jenis Identitas']}\n${item['Tanggal Lahir']}\n${item['Total Saldo']}\n${item.Perusahaan || '-'}\n${item['Tanggal Nonaktif'] || '-'}\n${item.KPJ}\n${item.Nama}`;
+}
+
+function copyFallback(btn, text) {
+  navigator.clipboard.writeText(text).then(() => {
+    btn.classList.add('copied');
+    const originalHTML = btn.innerHTML;
+    btn.innerHTML = `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="20 6 9 17 4 12"/>
+      </svg>
+      Tersalin!
+    `;
+    showToast('Data berhasil disalin');
+    setTimeout(() => {
+      btn.classList.remove('copied');
+      btn.innerHTML = originalHTML;
+    }, 2000);
+  });
+}
+
+function copyText(text, btn) {
+  navigator.clipboard.writeText(text).then(() => {
+    btn.classList.add('copied');
+    btn.textContent = 'Tersalin';
+    showToast('Tersalin: ' + text);
+    setTimeout(() => { btn.classList.remove('copied'); btn.textContent = 'Salin'; }, 1500);
+  });
+}
+
+function filterData() {
+  const q = document.getElementById('searchInput').value.toLowerCase().trim();
+  if (!q) {
+    filteredData = [...allData];
+  } else {
+    filteredData = allData.filter(d =>
+      d.Nama.toLowerCase().includes(q) ||
+      d.NIK.includes(q) ||
+      d.KPJ.includes(q) ||
+      d.Alamat.toLowerCase().includes(q)
+    );
+  }
+  applySort();
+  renderCards();
+}
+
+function toggleSort() {
+  sortOrder = sortOrder === 'desc' ? 'asc' : 'desc';
+  document.getElementById('sortLabel').textContent = sortOrder === 'desc' ? 'Terbaru' : 'Terlama';
+  applySort();
+  renderCards();
+}
+
+function applySort() {
+  filteredData.sort((a, b) => sortOrder === 'desc' ? b._timestamp - a._timestamp : a._timestamp - b._timestamp);
+}
+
+function updateStats() {
+  document.getElementById('statTotal').textContent = allData.length;
+  document.getElementById('statValid').textContent = allData.length;
+  const pct = allData.length > 0 ? 100 : 0;
+  document.getElementById('progressFill').style.width = pct + '%';
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+function saveData() {
+  localStorage.setItem('kpjData', JSON.stringify(allData));
+}
+
+function openModal(kpj) {
+  const item = allData.find(d => d.KPJ === kpj);
+  if (!item) return;
+  const body = document.getElementById('modalBody');
+  body.innerHTML = `
+    <div class="modal-item"><span class="modal-item-label">KPJ</span><span class="modal-item-value">${item.KPJ}</span></div>
+    <div class="modal-item"><span class="modal-item-label">Nama</span><span class="modal-item-value">${item.Nama}</span></div>
+    <div class="modal-item"><span class="modal-item-label">NIK</span><span class="modal-item-value">${item.NIK}</span></div>
+    <div class="modal-item"><span class="modal-item-label">Tanggal Lahir</span><span class="modal-item-value">${item['Tanggal Lahir']}</span></div>
+    <div class="modal-item"><span class="modal-item-label">Alamat</span><span class="modal-item-value">${item.Alamat}</span></div>
+    <div class="modal-item"><span class="modal-item-label">Total Saldo</span><span class="modal-item-value">${item['Total Saldo']}</span></div>
+    <div class="modal-item"><span class="modal-item-label">Jumlah Kartu</span><span class="modal-item-value">${item['Jumlah Kartu']}</span></div>
+    <div class="modal-item"><span class="modal-item-label">Status LASIK</span><span class="modal-item-value">${item['Status LASIK']}</span></div>
+    <div class="modal-item"><span class="modal-item-label">Detail LASIK</span><span class="modal-item-value" style="font-size:12px;max-width:60%;text-align:right;">${item['Detail LASIK']}</span></div>
+    <div class="modal-item"><span class="modal-item-label">Jamsostek Mobile</span><span class="modal-item-value" style="font-size:12px;max-width:60%;text-align:right;">${item['Jamsostek Mobile']}</span></div>
+  `;
+  document.getElementById('modalOverlay').classList.add('show');
+}
+
+function closeModal(e) {
+  if (!e || e.target.id === 'modalOverlay') {
+    document.getElementById('modalOverlay').classList.remove('show');
+  }
+}
+</script>
+</body>
+</html>
