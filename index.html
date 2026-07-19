@@ -121,10 +121,7 @@
     </div>
   </div>
 
-  <div class="file-list" id="fileList" style="display:none;">
-    <h3>&#128206; File yang Diupload</h3>
-    <div id="fileItems"></div>
-  </div>
+  
 
   <div class="stats-grid">
     <div class="stat-card"><div class="label">Total Data (Filtered)</div><div class="value total" id="statTotal">0</div></div>
@@ -228,27 +225,25 @@ var currentPage = 1;
 var rowsPerPage = 10;
 var sortCol = null;
 var sortAsc = true;
-var uploadedFiles = [];
+
 var highlightedRows = new Set();
 
 var STORAGE_KEY = 'sipp_data_v1';
-var FILES_KEY = 'sipp_files_v1';
+
 var HIGHLIGHT_KEY = 'sipp_highlight_v1';
 
 // ==================== INIT ====================
 function init(){
   var saved = localStorage.getItem(STORAGE_KEY);
-  var savedFiles = localStorage.getItem(FILES_KEY);
   var savedHighlight = localStorage.getItem(HIGHLIGHT_KEY);
 
   if(saved){
     try {
       allData = JSON.parse(saved);
-      if(savedFiles) uploadedFiles = JSON.parse(savedFiles);
+      
       if(savedHighlight) highlightedRows = new Set(JSON.parse(savedHighlight));
       applyFilters();
       updateStats();
-      renderFileList();
       showToast('Data berhasil dimuat dari penyimpanan lokal', 'success');
     } catch(e) {}
   }
@@ -336,11 +331,9 @@ function finishProcessing(newData, newFiles, processed){
     }
   }
 
-  uploadedFiles.push.apply(uploadedFiles, newFiles);
   saveData();
   applyFilters();
   updateStats();
-  renderFileList();
 
   document.getElementById('progressBar').style.display = 'none';
   document.getElementById('progressFill').style.width = '0%';
@@ -528,24 +521,7 @@ function updateKotaFilter(){
   select.innerHTML = html;
 }
 
-function renderFileList(){
-  var container = document.getElementById('fileList');
-  var items = document.getElementById('fileItems');
-
-  if(uploadedFiles.length === 0){
-    container.style.display = 'none';
-    return;
-  }
-
-  container.style.display = 'block';
-  items.innerHTML = uploadedFiles.map(function(f, i){
-    return '<div class="file-item">' +
-      '<div><div class="file-name">&#128196; ' + escapeHtml(f.name) + '</div>' +
-      '<div class="file-count">' + f.count + ' data &bull; ' + f.date + '</div></div>' +
-      '<button class="btn btn-danger btn-sm" onclick="removeFile(' + i + ')">&#128465;</button>' +
-      '</div>';
-  }).join('');
-}
+function renderFileList(){}
 
 // ==================== ACTIONS ====================
 function sortBy(col){
@@ -598,12 +574,7 @@ function copyAllFiltered(){
   });
 }
 
-function removeFile(idx){
-  uploadedFiles.splice(idx, 1);
-  localStorage.setItem(FILES_KEY, JSON.stringify(uploadedFiles));
-  renderFileList();
-  showToast('File dihapus dari daftar', 'info');
-}
+function removeFile(idx){}
 
 function confirmClear(){
   document.getElementById('modalTitle').textContent = 'Hapus Semua Data';
@@ -611,14 +582,11 @@ function confirmClear(){
   document.getElementById('modalConfirm').onclick = function(){
     allData = [];
     filteredData = [];
-    uploadedFiles = [];
     highlightedRows.clear();
     localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem(FILES_KEY);
     localStorage.removeItem(HIGHLIGHT_KEY);
     applyFilters();
     updateStats();
-    renderFileList();
     closeModal();
     showToast('Semua data telah dihapus', 'info');
   };
@@ -696,7 +664,6 @@ function downloadFile(blob, filename){
 // ==================== SAVE ====================
 function saveData(){
   localStorage.setItem(STORAGE_KEY, JSON.stringify(allData));
-  localStorage.setItem(FILES_KEY, JSON.stringify(uploadedFiles));
 }
 
 // ==================== UTILS ====================
