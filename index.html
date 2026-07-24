@@ -637,8 +637,10 @@
       }),
       timeout
     ]).catch(function(err){
-      if(attempt < 2){
-        return fetchJSON(url, attempt + 1);
+      if(attempt < 3){
+        var delay = attempt * 1500; // 1.5s, 3s
+        return new Promise(function(resolve){ window.setTimeout(resolve, delay); })
+          .then(function(){ return fetchJSON(url, attempt + 1); });
       }
       lastFetchError = (err && err.message) ? err.message : String(err);
       console.error("Gagal memuat", url, err);
@@ -690,8 +692,10 @@
     });
   }
 
+  var autoContinueCount = 0;
   els2.fillAddressBtn.addEventListener("click", function(){
     if(els2.fillAddressBtn.disabled) return;
+    autoContinueCount = 0;
     runFillAddress();
   });
 
@@ -723,6 +727,7 @@
     els2.fillAddressLabel.textContent = "Memproses…";
     toast("Mengambil data wilayah untuk " + targets.length + " baris…");
     lastFetchError = null;
+    var lastRoundFilled = 0;
 
     var provinceIds = {}, regencyIds = {};
     targets.forEach(function(r){
@@ -739,12 +744,12 @@
     }
 
     var stepsDone = 0;
-    batchRun(provinceIdList, getRegencies, 3, function(d){
+    batchRun(provinceIdList, getRegencies, 2, function(d){
         updateProgress(stepsDone + d);
       })
       .then(function(){
         stepsDone = provinceIdList.length;
-        return batchRun(regencyIdList, getDistricts, 3, function(d){
+        return batchRun(regencyIdList, getDistricts, 2, function(d){
           updateProgress(stepsDone + d);
         });
       })
@@ -772,11 +777,12 @@
         renderHeader();
         applyFilter();
 
+        lastRoundFilled = filledKab + filledKec;
         var msg;
         if(filledKab === 0 && filledKec === 0){
-          msg = "Tidak ada data wilayah yang berhasil diambil";
+          msg = "Belum ada tambahan kali ini";
           if(lastFetchError) msg += " (" + lastFetchError + ")";
-          msg += ". Coba lagi, atau periksa koneksi internet perangkat.";
+          msg += ". Progres sebelumnya tetap tersimpan — klik lagi untuk melanjutkan.";
           toast(msg, "danger");
         }else{
           msg = "Kab/Kota terisi: " + filledKab + ", Kecamatan terisi: " + filledKec + " (dari " + targets.length + " baris diperiksa). Kelurahan tidak bisa diisi dari NIK.";
@@ -787,8 +793,22 @@
         toast("Gagal mengambil data wilayah. Periksa koneksi internet lalu coba lagi.", "danger");
       })
       .then(function(){
-        els2.fillAddressBtn.disabled = state.rows.length === 0;
-        els2.fillAddressLabel.textContent = "Lengkapi Alamat dari NIK";
+        var remaining = state.rows.filter(function(r){
+          var nik = r[nikCol];
+          if(!isValidNik(nik)) return false;
+          var kabEmpty = !r[kabCol] || String(r[kabCol]).trim() === "";
+          var kecEmpty = !r[kecCol] || String(r[kecCol]).trim() === "";
+          return kabEmpty || kecEmpty;
+        });
+        var madeProgress = lastRoundFilled > 0;
+        if(remaining.length > 0 && madeProgress && autoContinueCount < 15){
+          autoContinueCount++;
+          els2.fillAddressLabel.textContent = "Melanjutkan… (" + remaining.length + " tersisa)";
+          window.setTimeout(runFillAddress, 900);
+        }else{
+          els2.fillAddressBtn.disabled = state.rows.length === 0;
+          els2.fillAddressLabel.textContent = "Lengkapi Alamat dari NIK";
+        }
       });
   }
 
