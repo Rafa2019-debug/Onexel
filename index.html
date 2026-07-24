@@ -3,484 +3,1110 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pembaca Data CSV - NIK & Nama</title>
+<title>Data Layak — Pengelola Data</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
-    background: #f3f4f6;
-    color: #1a1a2e;
-    padding: 20px;
+  :root{
+    --bg:#F5F6F8;
+    --surface:#FFFFFF;
+    --ink:#1B2130;
+    --ink-soft:#5B6472;
+    --border:#E3E6EB;
+    --navy:#132A46;
+    --navy-soft:#26456B;
+    --teal:#0E8A7D;
+    --teal-soft:#E4F5F2;
+    --amber:#C9822B;
+    --red:#C6414A;
+    --red-soft:#FBEAEB;
+    --focus:#0E8A7D;
+    --radius:10px;
+    --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
   }
-  .container {
-    max-width: 1000px;
-    margin: 0 auto;
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    font-family:var(--sans);
+    background:var(--bg);
+    color:var(--ink);
+    -webkit-font-smoothing:antialiased;
   }
-  .header {
-    text-align: center;
-    margin-bottom: 24px;
+  ::selection{ background:var(--teal-soft); }
+
+  .app{
+    display:flex;
+    flex-direction:column;
+    height:100vh;
   }
-  .header h1 {
-    font-size: 1.6rem;
-    font-weight: 700;
-    color: #16213e;
-    margin-bottom: 6px;
+
+  /* ---------- Header ---------- */
+  header{
+    background:var(--navy);
+    color:#fff;
+    padding:16px 24px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:12px;
+    border-bottom:3px solid var(--teal);
   }
-  .header p {
-    color: #6c757d;
-    font-size: 0.9rem;
+  .brand{
+    display:flex;
+    align-items:baseline;
+    gap:10px;
   }
-  .upload-area {
-    border: 2px dashed #4e73df;
-    border-radius: 12px;
-    padding: 32px;
-    text-align: center;
-    background: #f8f9ff;
-    cursor: pointer;
-    transition: all 0.2s;
-    margin-bottom: 20px;
+  .brand .mark{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    width:30px;height:30px;
+    border-radius:8px;
+    background:var(--teal);
+    color:#fff;
+    font-weight:700;
+    font-size:14px;
+    flex:none;
   }
-  .upload-area:hover {
-    background: #eef1ff;
-    border-color: #375a7f;
+  .brand h1{
+    font-size:16px;
+    font-weight:600;
+    margin:0;
+    letter-spacing:0.2px;
   }
-  .upload-area.dragover {
-    background: #e0e7ff;
-    border-color: #1e3a8a;
+  .brand .sub{
+    color:#9FB2C6;
+    font-size:12.5px;
   }
-  .upload-icon {
-    font-size: 2.5rem;
-    margin-bottom: 8px;
+  .stat-pill{
+    background:rgba(255,255,255,0.08);
+    border:1px solid rgba(255,255,255,0.14);
+    color:#DCE6EF;
+    font-size:12.5px;
+    padding:6px 12px;
+    border-radius:999px;
+    display:flex;
+    gap:8px;
+    align-items:center;
   }
-  .upload-text {
-    font-weight: 600;
-    color: #4e73df;
+  .stat-pill b{ color:#fff; font-variant-numeric:tabular-nums; }
+  .stat-pill .dot{ width:6px;height:6px;border-radius:50%; background:var(--teal); }
+
+  /* ---------- Toolbar ---------- */
+  .toolbar{
+    background:var(--surface);
+    border-bottom:1px solid var(--border);
+    padding:12px 24px;
+    display:flex;
+    gap:10px;
+    align-items:center;
+    flex-wrap:wrap;
   }
-  .upload-hint {
-    font-size: 0.8rem;
-    color: #888;
-    margin-top: 4px;
+  .search-wrap{
+    position:relative;
+    flex:1 1 320px;
+    min-width:220px;
   }
-  .controls {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 16px;
-    flex-wrap: wrap;
-    align-items: center;
+  .search-wrap svg{
+    position:absolute;
+    left:12px; top:50%; transform:translateY(-50%);
+    width:16px;height:16px;
+    color:var(--ink-soft);
+    pointer-events:none;
   }
-  .btn {
-    padding: 8px 16px;
-    border-radius: 8px;
-    border: none;
-    font-weight: 600;
-    cursor: pointer;
-    font-size: 0.85rem;
-    transition: all 0.15s;
+  #search{
+    width:100%;
+    padding:10px 12px 10px 36px;
+    border-radius:var(--radius);
+    border:1.5px solid var(--border);
+    font-size:14px;
+    background:var(--bg);
+    color:var(--ink);
+    outline:none;
+    transition:border-color .15s, background .15s;
   }
-  .btn-primary {
-    background: #4e73df;
-    color: white;
+  #search:focus{
+    border-color:var(--teal);
+    background:#fff;
+    box-shadow:0 0 0 3px var(--teal-soft);
   }
-  .btn-primary:hover { background: #375a7f; }
-  .btn-danger {
-    background: #e74a3b;
-    color: white;
+  .btn{
+    display:inline-flex;
+    align-items:center;
+    gap:7px;
+    padding:9px 14px;
+    border-radius:var(--radius);
+    border:1.5px solid var(--border);
+    background:#fff;
+    color:var(--ink);
+    font-size:13.5px;
+    font-weight:600;
+    cursor:pointer;
+    white-space:nowrap;
+    transition:transform .05s ease, border-color .15s, background .15s;
   }
-  .btn-danger:hover { background: #c0392b; }
-  .btn-success {
-    background: #1cc88a;
-    color: white;
+  .btn:hover{ border-color:#C7CDD6; background:#FAFBFC; }
+  .btn:active{ transform:translateY(1px); }
+  .btn:focus-visible{ outline:2px solid var(--focus); outline-offset:2px; }
+  .btn svg{ width:15px;height:15px; flex:none; }
+  .btn-primary{ background:var(--teal); border-color:var(--teal); color:#fff; }
+  .btn-primary:hover{ background:#0C7A6F; border-color:#0C7A6F; }
+  .btn-danger{ color:var(--red); border-color:#EFC9CC; background:#fff; }
+  .btn-danger:hover{ background:var(--red-soft); border-color:var(--red); }
+  .btn-danger[disabled], .btn[disabled]{
+    opacity:.45; cursor:not-allowed; pointer-events:none;
   }
-  .btn-success:hover { background: #17a673; }
-  .stats {
-    margin-left: auto;
-    font-size: 0.85rem;
-    color: #6c757d;
-    font-weight: 500;
+  .btn-ghost{ border-color:transparent; background:transparent; color:var(--ink-soft); }
+  .btn-ghost:hover{ background:var(--bg); color:var(--ink); }
+  #fileInput{ display:none; }
+
+  /* ---------- Table area ---------- */
+  .table-wrap{
+    flex:1;
+    overflow:auto;
+    background:var(--surface);
+    margin:0 24px 24px 24px;
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    position:relative;
   }
-  .search-box {
-    padding: 8px 14px;
-    border: 1px solid #d1d5db;
-    border-radius: 8px;
-    font-size: 0.85rem;
-    width: 220px;
+  table{
+    border-collapse:collapse;
+    width:100%;
+    font-size:13px;
+    min-width:1200px;
   }
-  .table-wrap {
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-    border: 1px solid #e5e7eb;
-    background: white;
+  thead th{
+    position:sticky;
+    top:0;
+    background:#F0F2F5;
+    color:var(--ink);
+    text-align:left;
+    padding:10px 12px;
+    font-weight:700;
+    font-size:11.5px;
+    text-transform:uppercase;
+    letter-spacing:0.4px;
+    border-bottom:1.5px solid var(--border);
+    z-index:2;
+    white-space:nowrap;
   }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.88rem;
-    background: white;
+  thead th:first-child{ z-index:3; }
+  tbody td{
+    padding:9px 12px;
+    border-bottom:1px solid var(--border);
+    white-space:nowrap;
+    color:var(--ink);
   }
-  thead {
-    background: #16213e;
-    color: white;
-    position: sticky;
-    top: 0;
-    z-index: 2;
+  tbody tr:hover{ background:#F8FBFA; }
+  tbody tr.is-selected{ background:var(--teal-soft); }
+  .cell-check{ width:38px; text-align:center; }
+  .cell-check input, thead th.cell-check input{ width:16px; height:16px; cursor:pointer; accent-color:var(--teal); }
+  .cell-actions{ width:64px; text-align:center; }
+  .copy-btn{
+    border:1.5px solid var(--border);
+    background:#fff;
+    color:var(--ink-soft);
+    width:30px;height:30px;
+    border-radius:8px;
+    cursor:pointer;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    transition:.12s;
   }
-  th {
-    padding: 12px 14px;
-    text-align: left;
-    font-weight: 600;
-    font-size: 0.8rem;
-    text-transform: uppercase;
-    letter-spacing: 0.4px;
+  .copy-btn:hover{ border-color:var(--teal); color:var(--teal); background:var(--teal-soft); }
+  .copy-btn.copied{ border-color:var(--teal); color:#fff; background:var(--teal); }
+  .copy-btn svg{ width:14px;height:14px; }
+  .mono{ font-family:var(--mono); font-size:12.3px; }
+  mark{ background:#FCE8B8; color:inherit; border-radius:2px; padding:0 1px; }
+
+  .empty-state{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    padding:80px 24px;
+    color:var(--ink-soft);
   }
-  td {
-    padding: 10px 14px;
-    border-bottom: 1px solid #f0f0f0;
-    vertical-align: middle;
+  .empty-state svg{ width:44px;height:44px; color:#C7CDD6; margin-bottom:14px; }
+  .empty-state h3{ margin:0 0 6px 0; color:var(--ink); font-size:15px; }
+  .empty-state p{ margin:0 0 16px 0; font-size:13.5px; max-width:360px; }
+
+  .load-more-row td{
+    text-align:center;
+    padding:14px;
+    background:#FAFBFC;
   }
-  tr:hover td {
-    background: #f8f9ff;
+  .load-more-row button{
+    background:none;
+    border:1.5px dashed var(--border);
+    color:var(--navy-soft);
+    padding:8px 16px;
+    border-radius:999px;
+    font-size:12.5px;
+    font-weight:600;
+    cursor:pointer;
   }
-  .copy-btn {
-    background: #eef1ff;
-    border: 1px solid #c7d2fe;
-    color: #4e73df;
-    padding: 4px 10px;
-    border-radius: 6px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.15s;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    margin-top: 4px;
+  .load-more-row button:hover{ border-color:var(--teal); color:var(--teal); }
+
+  /* ---------- Toast ---------- */
+  #toastHost{
+    position:fixed;
+    bottom:20px;
+    left:50%;
+    transform:translateX(-50%);
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    z-index:999;
+    align-items:center;
   }
-  .copy-btn:hover {
-    background: #4e73df;
-    color: white;
-    border-color: #4e73df;
+  .toast{
+    background:var(--navy);
+    color:#fff;
+    padding:10px 18px;
+    border-radius:999px;
+    font-size:13px;
+    font-weight:600;
+    box-shadow:0 8px 20px rgba(19,42,70,0.25);
+    display:flex;
+    align-items:center;
+    gap:8px;
+    animation:toastIn .18s ease-out;
   }
-  .copy-btn.copied {
-    background: #1cc88a;
-    color: white;
-    border-color: #1cc88a;
+  .toast.danger{ background:var(--red); }
+  @keyframes toastIn{ from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);} }
+
+  /* ---------- Modal (confirm) ---------- */
+  .overlay{
+    position:fixed; inset:0;
+    background:rgba(19,26,38,0.45);
+    display:flex; align-items:center; justify-content:center;
+    z-index:998;
   }
-  .data-cell {
-    font-family: 'SF Mono', 'Consolas', monospace;
-    font-size: 0.82rem;
-    color: #1a1a2e;
-    word-break: break-all;
+  .modal{
+    background:#fff;
+    border-radius:14px;
+    padding:22px;
+    width:340px;
+    box-shadow:0 20px 50px rgba(0,0,0,0.25);
   }
-  .name-cell {
-    font-weight: 600;
-    color: #16213e;
+  .modal h3{ margin:0 0 8px 0; font-size:15px; }
+  .modal p{ margin:0 0 18px 0; font-size:13.5px; color:var(--ink-soft); line-height:1.5; }
+  .modal .row{ display:flex; gap:8px; justify-content:flex-end; }
+
+  .visually-hidden{
+    position:absolute; width:1px;height:1px; overflow:hidden; clip:rect(0 0 0 0);
   }
-  .empty-state {
-    text-align: center;
-    padding: 60px 20px;
-    color: #9ca3af;
+
+  .preview-warning{
+    background:#FFF4E5;
+    border-bottom:1px solid #F0CE9A;
+    color:#8A5A16;
+    padding:9px 24px;
+    font-size:12.8px;
+    display:flex;
+    align-items:center;
+    gap:8px;
   }
-  .empty-state .icon {
-    font-size: 3rem;
-    margin-bottom: 12px;
-    opacity: 0.5;
-  }
-  .toast {
-    position: fixed;
-    bottom: 24px;
-    right: 24px;
-    background: #16213e;
-    color: white;
-    padding: 12px 20px;
-    border-radius: 10px;
-    font-size: 0.85rem;
-    font-weight: 500;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
-    transform: translateY(80px);
-    opacity: 0;
-    transition: all 0.3s ease;
-    z-index: 100;
-  }
-  .toast.show {
-    transform: translateY(0);
-    opacity: 1;
-  }
-  .badge {
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 12px;
-    font-size: 0.7rem;
-    font-weight: 700;
-    background: #e0e7ff;
-    color: #4e73df;
-  }
-  .file-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin-bottom: 12px;
-  }
-  .file-tag {
-    background: #eef1ff;
-    color: #4e73df;
-    padding: 4px 10px;
-    border-radius: 16px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .file-tag .remove {
-    cursor: pointer;
-    opacity: 0.6;
-  }
-  .file-tag .remove:hover { opacity: 1; }
-  @media (max-width: 768px) {
-    .controls { flex-direction: column; align-items: stretch; }
-    .search-box { width: 100%; }
-    .stats { margin-left: 0; }
-    th, td { padding: 8px 10px; font-size: 0.8rem; }
+  .preview-warning svg{ width:15px;height:15px; flex:none; }
+  .preview-warning b{ font-weight:700; }
+
+  @media (max-width: 720px){
+    header{ padding:12px 16px; }
+    .toolbar{ padding:10px 16px; }
+    .table-wrap{ margin:0 12px 12px 12px; }
+    .brand .sub{ display:none; }
   }
 </style>
 </head>
 <body>
-<div class="container">
-  <div class="header">
-    <h1>📋 Pembaca Data CSV</h1>
-    <p>Upload file CSV untuk melihat, mencari, dan menyalin data NIK, Nama, dan Tanggal Lahir</p>
+<div class="app">
+
+  <header>
+    <div class="brand">
+      <span class="mark">DL</span>
+      <div>
+        <h1>Data Layak — Pengelola Data</h1>
+        <div class="sub">Unggah, cari, dan kelola data klaim dalam satu tempat</div>
+      </div>
+    </div>
+    <div class="stat-pill">
+      <span class="dot"></span>
+      <span><b id="rowCount">0</b> baris tersimpan</span>
+    </div>
+  </header>
+
+  <div class="preview-warning" id="previewWarning" style="display:none">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+    <span><b>Mode pratinjau terdeteksi.</b> Penyimpanan otomatis dan fitur "Lengkapi Alamat dari NIK" butuh koneksi internet langsung, dan tidak selalu berfungsi di dalam jendela pratinjau ini. Unduh file lalu buka langsung di browser (Chrome/Edge/Firefox) untuk fungsi penuh.</span>
   </div>
 
-  <div class="upload-area" id="dropZone">
-    <div class="upload-icon">📁</div>
-    <div class="upload-text">Klik atau seret file CSV ke sini</div>
-    <div class="upload-hint">Bisa upload banyak file sekaligus. Data tersimpan otomatis.</div>
-    <input type="file" id="fileInput" accept=".csv" multiple style="display:none">
+  <div class="toolbar">
+    <button class="btn btn-primary" id="uploadBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 8 5-5 5 5"/><path d="M5 21h14a2 2 0 0 0 2-2v-5a2 2 0 0 0-2-2h-3"/><path d="M5 21a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h3"/></svg>
+      Unggah Excel
+    </button>
+    <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" multiple>
+
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      <input type="text" id="search" placeholder="Cari di semua kolom… (nama, NIK, KPJ, perusahaan, dll.)" autocomplete="off">
+    </div>
+
+    <button class="btn" id="downloadBtn" disabled>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+      <span id="downloadLabel">Unduh Semua</span>
+    </button>
+
+    <button class="btn btn-danger" id="deleteSelectedBtn" disabled>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+      <span id="deleteSelectedLabel">Hapus Terpilih</span>
+    </button>
+
+    <button class="btn" id="fillAddressBtn" disabled title="Mengisi Kab/Kota &amp; Kecamatan dari 6 digit awal NIK. Butuh koneksi internet.">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.9 20.9a9 9 0 1 0-2.6 2"/><path d="M12 8v4l2.5 2.5"/></svg>
+      <span id="fillAddressLabel">Lengkapi Alamat dari NIK</span>
+    </button>
+
+    <button class="btn btn-ghost" id="clearAllBtn" disabled>
+      Hapus Semua
+    </button>
   </div>
 
-  <div class="file-list" id="fileList"></div>
-
-  <div class="controls">
-    <button class="btn btn-primary" onclick="exportCSV()">⬇️ Export CSV</button>
-    <button class="btn btn-danger" onclick="clearAll()">🗑️ Hapus Semua</button>
-    <input type="text" class="search-box" id="searchInput" placeholder="🔍 Cari NIK atau Nama..." oninput="renderTable()">
-    <span class="stats" id="stats">0 data</span>
-  </div>
-
-  <div class="table-wrap">
-    <table id="dataTable">
-      <thead>
-        <tr>
-          <th style="width:40px">No</th>
-          <th>NIK <span class="badge">Salin</span></th>
-          <th>Nama <span class="badge">Salin</span></th>
-          <th>Tgl Lahir <span class="badge">Salin</span></th>
-          <th>Status Akun</th>
-        </tr>
-      </thead>
-      <tbody id="tableBody">
-        <tr><td colspan="5" class="empty-state">
-          <div class="icon">📂</div>
-          <div>Belum ada data. Silakan upload file CSV.</div>
-        </td></tr>
-      </tbody>
+  <div class="table-wrap" id="tableWrap">
+    <div class="empty-state" id="emptyState">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2Z"/><path d="M9 13h6"/><path d="M9 17h6"/></svg>
+      <h3>Belum ada data</h3>
+      <p>Unggah satu atau beberapa file Excel (.xlsx / .xls / .csv) untuk mulai. Kamu bisa mengunggah banyak file sekaligus — datanya akan digabung.</p>
+      <button class="btn btn-primary" id="emptyUploadBtn">Unggah Excel</button>
+    </div>
+    <table id="dataTable" style="display:none">
+      <thead><tr id="headRow"></tr></thead>
+      <tbody id="bodyRows"></tbody>
     </table>
   </div>
-
-  <div class="toast" id="toast">Tersalin ke clipboard!</div>
 </div>
+
+<div id="toastHost"></div>
 
 <script>
 (function(){
-  const STORAGE_KEY = 'csv_reader_data_v1';
-  let allData = [];
+  "use strict";
 
-  function loadFromStorage() {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        allData = JSON.parse(raw);
-        renderTable();
-        updateFileList();
-      }
-    } catch(e) { console.error(e); }
-  }
+  var STORAGE_KEY = "dataLayakManager_v1";
+  var BATCH = 200;
 
-  function saveToStorage() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(allData));
-  }
+  var state = {
+    columns: [],
+    rows: [],          // [{__id, __s: lowercased search blob, col1: val, ...}]
+    selected: new Set(),
+    query: "",
+    filtered: [],
+    renderedCount: 0,
+    nextId: 1
+  };
 
-  function parseCSV(text) {
-    const lines = text.trim().split(/\r?\n/);
-    if (lines.length < 2) return [];
-    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-    const idxNik = headers.findIndex(h => h.includes('nik'));
-    const idxNama = headers.findIndex(h => h.includes('nama'));
-    const idxTgl = headers.findIndex(h => h.includes('tgl lahir') || h.includes('tanggal lahir') || h.includes('tgl_lahir'));
-    const idxStatus = headers.findIndex(h => h.includes('status'));
+  var els = {
+    uploadBtn: document.getElementById("uploadBtn"),
+    emptyUploadBtn: document.getElementById("emptyUploadBtn"),
+    fileInput: document.getElementById("fileInput"),
+    search: document.getElementById("search"),
+    downloadBtn: document.getElementById("downloadBtn"),
+    downloadLabel: document.getElementById("downloadLabel"),
+    deleteSelectedBtn: document.getElementById("deleteSelectedBtn"),
+    deleteSelectedLabel: document.getElementById("deleteSelectedLabel"),
+    clearAllBtn: document.getElementById("clearAllBtn"),
+    tableWrap: document.getElementById("tableWrap"),
+    emptyState: document.getElementById("emptyState"),
+    dataTable: document.getElementById("dataTable"),
+    headRow: document.getElementById("headRow"),
+    bodyRows: document.getElementById("bodyRows"),
+    rowCount: document.getElementById("rowCount"),
+    toastHost: document.getElementById("toastHost")
+  };
 
-    const results = [];
-    for (let i = 1; i < lines.length; i++) {
-      const cols = lines[i].split(',');
-      if (cols.length < 2) continue;
-      results.push({
-        nik: cols[idxNik] !== undefined ? cols[idxNik].trim() : '',
-        nama: cols[idxNama] !== undefined ? cols[idxNama].trim() : '',
-        tglLahir: cols[idxTgl] !== undefined ? cols[idxTgl].trim() : '',
-        status: cols[idxStatus] !== undefined ? cols[idxStatus].trim() : ''
-      });
+  // ---------------- Persistence ----------------
+  var storageAvailable = true;
+  function saveState(){
+    if(!storageAvailable) return;
+    try{
+      var payload = JSON.stringify({ columns: state.columns, rows: state.rows.map(stripInternal), nextId: state.nextId });
+      localStorage.setItem(STORAGE_KEY, payload);
+    }catch(e){
+      storageAvailable = false;
+      toast("Data terlalu besar untuk disimpan otomatis di browser ini. Perubahan tidak akan tersimpan saat refresh.", "danger");
     }
-    return results;
+  }
+  function stripInternal(row){
+    var out = {};
+    for(var k in row){ if(k !== "__id" && k !== "__s") out[k] = row[k]; }
+    return out;
+  }
+  function loadState(){
+    try{
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if(!raw) return;
+      var parsed = JSON.parse(raw);
+      if(parsed && Array.isArray(parsed.rows)){
+        state.columns = parsed.columns || [];
+        state.nextId = parsed.nextId || 1;
+        state.rows = parsed.rows.map(function(r){ return hydrateRow(r); });
+      }
+    }catch(e){
+      // corrupted storage — ignore and start fresh
+    }
+  }
+  function hydrateRow(plainRow){
+    var row = Object.assign({}, plainRow);
+    row.__id = state.nextId++;
+    row.__s = buildSearchBlob(row);
+    return row;
+  }
+  function buildSearchBlob(row){
+    var parts = [];
+    for(var i=0;i<state.columns.length;i++){
+      var v = row[state.columns[i]];
+      if(v !== undefined && v !== null) parts.push(String(v));
+    }
+    return parts.join(" \u241F ").toLowerCase();
   }
 
-  function handleFiles(files) {
-    let processed = 0;
-    Array.from(files).forEach(file => {
-      if (!file.name.toLowerCase().endsWith('.csv')) return;
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        const parsed = parseCSV(e.target.result);
-        const withSource = parsed.map(d => ({...d, _source: file.name}));
-        allData = allData.concat(withSource);
-        processed++;
-        if (processed === files.length) {
-          saveToStorage();
-          renderTable();
-          updateFileList();
-          showToast(`${parsed.length} data dari "${file.name}" berhasil dimuat`);
+  // ---------------- Toast ----------------
+  var toastTimer = null;
+  function toast(msg, kind){
+    var t = document.createElement("div");
+    t.className = "toast" + (kind === "danger" ? " danger" : "");
+    t.textContent = msg;
+    els.toastHost.innerHTML = "";
+    els.toastHost.appendChild(t);
+    window.clearTimeout(toastTimer);
+    var duration = kind === "danger" ? 6000 : (msg.length > 60 ? 4200 : 2600);
+    toastTimer = window.setTimeout(function(){ t.remove(); }, duration);
+  }
+
+  // ---------------- Upload / Parsing ----------------
+  els.uploadBtn.addEventListener("click", function(){ els.fileInput.click(); });
+  els.emptyUploadBtn.addEventListener("click", function(){ els.fileInput.click(); });
+
+  els.fileInput.addEventListener("change", function(e){
+    var files = Array.prototype.slice.call(e.target.files || []);
+    if(!files.length) return;
+    handleFiles(files);
+    els.fileInput.value = "";
+  });
+
+  // drag & drop convenience
+  ["dragover","drop"].forEach(function(evt){
+    document.addEventListener(evt, function(e){ e.preventDefault(); });
+  });
+  document.addEventListener("drop", function(e){
+    var files = Array.prototype.slice.call((e.dataTransfer && e.dataTransfer.files) || []);
+    if(files.length) handleFiles(files);
+  });
+
+  function handleFiles(files){
+    var pending = files.length;
+    var totalAdded = 0;
+    var totalSkipped = 0;
+    var newColumnsFound = false;
+
+    files.forEach(function(file){
+      var reader = new FileReader();
+      reader.onload = function(evt){
+        try{
+          var data = new Uint8Array(evt.target.result);
+          var wb = XLSX.read(data, { type: "array" });
+          wb.SheetNames.forEach(function(sheetName){
+            var sheet = wb.Sheets[sheetName];
+            var json = XLSX.utils.sheet_to_json(sheet, { defval: "", raw: false });
+            json.forEach(function(obj){
+              var keys = Object.keys(obj);
+              keys.forEach(function(k){
+                if(state.columns.indexOf(k) === -1){
+                  state.columns.push(k);
+                  newColumnsFound = true;
+                }
+              });
+              var added = addRow(obj);
+              if(added) totalAdded++; else totalSkipped++;
+            });
+          });
+        }catch(err){
+          toast("Gagal membaca file: " + file.name, "danger");
         }
+        pending--;
+        if(pending === 0) finishUpload(totalAdded, totalSkipped, newColumnsFound);
       };
-      reader.readAsText(file);
+      reader.onerror = function(){
+        pending--;
+        toast("Gagal membuka file: " + file.name, "danger");
+        if(pending === 0) finishUpload(totalAdded, totalSkipped, newColumnsFound);
+      };
+      reader.readAsArrayBuffer(file);
     });
   }
 
-  function renderTable() {
-    const tbody = document.getElementById('tableBody');
-    const search = document.getElementById('searchInput').value.toLowerCase();
-    let filtered = allData;
-    if (search) {
-      filtered = allData.filter(d =>
-        (d.nik && d.nik.toLowerCase().includes(search)) ||
-        (d.nama && d.nama.toLowerCase().includes(search))
-      );
+  function dedupeKey(obj){
+    var nik = obj["NIK"] || obj["nik"];
+    var kpj = obj["KPJ"] || obj["kpj"];
+    if(nik || kpj) return "NK::" + (kpj||"") + "::" + (nik||"");
+    return "ROW::" + JSON.stringify(obj);
+  }
+
+  var seenKeys = null; // built lazily, invalidated on structural changes
+  function ensureSeenKeys(){
+    if(seenKeys) return;
+    seenKeys = new Set();
+    state.rows.forEach(function(r){ seenKeys.add(dedupeKey(stripInternal(r))); });
+  }
+
+  function addRow(obj){
+    ensureSeenKeys();
+    var key = dedupeKey(obj);
+    if(seenKeys.has(key)) return false;
+    seenKeys.add(key);
+    var row = Object.assign({}, obj);
+    row.__id = state.nextId++;
+    row.__s = buildSearchBlob(row);
+    state.rows.push(row);
+    return true;
+  }
+
+  function finishUpload(added, skipped, columnsChanged){
+    if(columnsChanged){
+      // recompute search blobs since column set grew
+      state.rows.forEach(function(r){ r.__s = buildSearchBlob(r); });
+      renderHeader();
     }
+    saveState();
+    applyFilter();
+    var msg = added + " baris ditambahkan";
+    if(skipped) msg += ", " + skipped + " duplikat dilewati";
+    toast(msg);
+    updateToolbarState();
+  }
 
-    document.getElementById('stats').textContent = `${filtered.length} data ditampilkan`;
+  // ---------------- Lengkapi Alamat dari NIK ----------------
+  // Struktur NIK: PP KK CC DDMMYY XXXX
+  //   PP = 2 digit kode provinsi, KK = 2 digit kode kab/kota (bersama PP jadi 4 digit),
+  //   CC = 2 digit kode kecamatan (bersama PP+KK jadi 6 digit).
+  // NIK TIDAK menyimpan kode kelurahan/desa, jadi Kelurahan tidak bisa diisi dari NIK.
+  var WILAYAH_API = "https://emsifa.github.io/api-wilayah-indonesia/api";
+  var wilayahCache = { regencies: {}, districts: {} }; // regencies[provId] = {code:name}, districts[regId] = {code:name}
 
-    if (filtered.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="5" class="empty-state">
-        <div class="icon">🔍</div>
-        <div>Tidak ada data yang cocok dengan pencarian.</div>
-      </td></tr>`;
+  var els2 = {
+    fillAddressBtn: document.getElementById("fillAddressBtn"),
+    fillAddressLabel: document.getElementById("fillAddressLabel")
+  };
+
+  function isValidNik(v){
+    return typeof v === "string" ? /^\d{16}$/.test(v.trim()) : /^\d{16}$/.test(String(v||"").trim());
+  }
+
+  function findColumnKey(candidates){
+    for(var i=0;i<state.columns.length;i++){
+      var norm = state.columns[i].toLowerCase().replace(/[^a-z]/g, "");
+      for(var j=0;j<candidates.length;j++){
+        if(norm === candidates[j]) return state.columns[i];
+      }
+    }
+    return null;
+  }
+
+  function normalizeRegencyName(name){
+    if(!name) return name;
+    if(name.indexOf("KABUPATEN ") === 0) return name.slice("KABUPATEN ".length);
+    return name;
+  }
+
+  function fetchJSON(url){
+    var timeout = new Promise(function(_, reject){
+      window.setTimeout(function(){ reject(new Error("timeout")); }, 10000);
+    });
+    return Promise.race([
+      fetch(url).then(function(res){
+        if(!res.ok) throw new Error("HTTP " + res.status);
+        return res.json();
+      }),
+      timeout
+    ]).catch(function(err){
+      console.error("Gagal memuat", url, err);
+      throw err;
+    });
+  }
+
+  function getRegencies(provinceId){
+    if(wilayahCache.regencies[provinceId]) return Promise.resolve(wilayahCache.regencies[provinceId]);
+    return fetchJSON(WILAYAH_API + "/regencies/" + provinceId + ".json").then(function(list){
+      var map = {};
+      (list||[]).forEach(function(item){ map[item.id] = item.name; });
+      wilayahCache.regencies[provinceId] = map;
+      return map;
+    });
+  }
+
+  function getDistricts(regencyId){
+    if(wilayahCache.districts[regencyId]) return Promise.resolve(wilayahCache.districts[regencyId]);
+    return fetchJSON(WILAYAH_API + "/districts/" + regencyId + ".json").then(function(list){
+      var map = {};
+      (list||[]).forEach(function(item){ map[item.id] = item.name; });
+      wilayahCache.districts[regencyId] = map;
+      return map;
+    });
+  }
+
+  function batchRun(ids, worker, concurrency){
+    var queue = ids.slice();
+    var active = 0;
+    return new Promise(function(resolve){
+      var results = { ok: 0, fail: 0 };
+      function next(){
+        if(queue.length === 0 && active === 0){ resolve(results); return; }
+        while(active < concurrency && queue.length > 0){
+          var id = queue.shift();
+          active++;
+          worker(id).then(function(){ results.ok++; }, function(){ results.fail++; })
+            .then(function(){ active--; next(); });
+        }
+      }
+      next();
+    });
+  }
+
+  els2.fillAddressBtn.addEventListener("click", function(){
+    if(els2.fillAddressBtn.disabled) return;
+    runFillAddress();
+  });
+
+  function runFillAddress(){
+    var nikCol = findColumnKey(["nik"]);
+    if(!nikCol){
+      toast("Tidak ditemukan kolom NIK di data ini", "danger");
+      return;
+    }
+    var kabCol = findColumnKey(["kabkota","kabupatenkota","kabupaten","kota"]);
+    var kecCol = findColumnKey(["kecamatan"]);
+    if(!kabCol){ kabCol = "Kab/Kota"; if(state.columns.indexOf(kabCol) === -1) state.columns.push(kabCol); }
+    if(!kecCol){ kecCol = "Kecamatan"; if(state.columns.indexOf(kecCol) === -1) state.columns.push(kecCol); }
+
+    var targets = state.rows.filter(function(r){
+      var nik = r[nikCol];
+      if(!isValidNik(nik)) return false;
+      var kabEmpty = !r[kabCol] || String(r[kabCol]).trim() === "";
+      var kecEmpty = !r[kecCol] || String(r[kecCol]).trim() === "";
+      return kabEmpty || kecEmpty;
+    });
+
+    if(targets.length === 0){
+      toast("Tidak ada baris yang perlu dilengkapi (NIK valid & alamat kosong)");
       return;
     }
 
-    tbody.innerHTML = filtered.map((d, i) => `
-      <tr>
-        <td style="color:#888;font-size:0.8rem">${i+1}</td>
-        <td>
-          <div class="data-cell">${escapeHtml(d.nik)}</div>
-          <button class="copy-btn" onclick="copyText(this,'${escapeHtml(d.nik)}')">📋 Salin</button>
-        </td>
-        <td>
-          <div class="name-cell">${escapeHtml(d.nama)}</div>
-          <button class="copy-btn" onclick="copyText(this,'${escapeHtml(d.nama)}')">📋 Salin</button>
-        </td>
-        <td>
-          <div class="data-cell">${escapeHtml(d.tglLahir)}</div>
-          <button class="copy-btn" onclick="copyText(this,'${escapeHtml(d.tglLahir)}')">📋 Salin</button>
-        </td>
-        <td style="font-size:0.8rem;color:#666">${escapeHtml(d.status)}</td>
-      </tr>
-    `).join('');
-  }
+    els2.fillAddressBtn.disabled = true;
+    els2.fillAddressLabel.textContent = "Memproses…";
+    toast("Mengambil data wilayah untuk " + targets.length + " baris…");
 
-  function updateFileList() {
-    const sources = [...new Set(allData.map(d => d._source).filter(Boolean))];
-    const el = document.getElementById('fileList');
-    if (sources.length === 0) { el.innerHTML = ''; return; }
-    el.innerHTML = sources.map(s => `
-      <span class="file-tag">
-        📄 ${escapeHtml(s)}
-        <span class="remove" onclick="removeFile('${escapeHtml(s)}')">✕</span>
-      </span>
-    `).join('');
-  }
-
-  window.copyText = function(btn, text) {
-    navigator.clipboard.writeText(text).then(() => {
-      btn.classList.add('copied');
-      btn.textContent = '✓ Tersalin';
-      showToast('"' + text + '" tersalin!');
-      setTimeout(() => {
-        btn.classList.remove('copied');
-        btn.innerHTML = '📋 Salin';
-      }, 1500);
+    var provinceIds = {}, regencyIds = {};
+    targets.forEach(function(r){
+      var nik = String(r[nikCol]).trim();
+      provinceIds[nik.slice(0,2)] = true;
+      regencyIds[nik.slice(0,4)] = true;
     });
-  };
 
-  window.removeFile = function(filename) {
-    allData = allData.filter(d => d._source !== filename);
-    saveToStorage();
-    renderTable();
-    updateFileList();
-    showToast(`File "${filename}" dihapus dari daftar`);
-  };
+    batchRun(Object.keys(provinceIds), getRegencies, 6)
+      .then(function(){ return batchRun(Object.keys(regencyIds), getDistricts, 6); })
+      .then(function(){
+        var filledKab = 0, filledKec = 0, noMatch = 0;
+        targets.forEach(function(r){
+          var nik = String(r[nikCol]).trim();
+          var provId = nik.slice(0,2), regId = nik.slice(0,4), distId = nik.slice(0,6);
+          var regMap = wilayahCache.regencies[provId];
+          var distMap = wilayahCache.districts[regId];
+          var matched = false;
+          if((!r[kabCol] || String(r[kabCol]).trim()==="") && regMap && regMap[regId]){
+            r[kabCol] = normalizeRegencyName(regMap[regId]);
+            filledKab++; matched = true;
+          }
+          if((!r[kecCol] || String(r[kecCol]).trim()==="") && distMap && distMap[distId]){
+            r[kecCol] = distMap[distId];
+            filledKec++; matched = true;
+          }
+          if(matched) r.__s = buildSearchBlob(r);
+          if(!matched) noMatch++;
+        });
 
-  window.clearAll = function() {
-    if (!confirm('Yakin ingin menghapus semua data?')) return;
-    allData = [];
-    localStorage.removeItem(STORAGE_KEY);
-    renderTable();
-    updateFileList();
-    showToast('Semua data telah dihapus');
-  };
+        saveState();
+        renderHeader();
+        applyFilter();
 
-  window.exportCSV = function() {
-    if (allData.length === 0) { showToast('Tidak ada data untuk diekspor'); return; }
-    const csv = [
-      'No,NIK,Nama,Tanggal Lahir,Status Akun',
-      ...allData.map((d, i) => `${i+1},"${d.nik}","${d.nama}","${d.tglLahir}","${d.status}"`)
-    ].join('\n');
-    const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'data_export_' + new Date().toISOString().slice(0,10) + '.csv';
-    a.click();
-    URL.revokeObjectURL(url);
-    showToast('File CSV berhasil diunduh');
-  };
-
-  function showToast(msg) {
-    const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.classList.add('show');
-    setTimeout(() => t.classList.remove('show'), 2500);
+        var msg;
+        if(filledKab === 0 && filledKec === 0){
+          msg = "Tidak ada data wilayah yang berhasil diambil. Pastikan file ini dibuka langsung di browser (bukan pratinjau di dalam Claude) dan perangkat terhubung ke internet.";
+          toast(msg, "danger");
+        }else{
+          msg = "Kab/Kota terisi: " + filledKab + ", Kecamatan terisi: " + filledKec + " (dari " + targets.length + " baris diperiksa). Kelurahan tidak bisa diisi dari NIK.";
+          toast(msg);
+        }
+      })
+      .catch(function(){
+        toast("Gagal mengambil data wilayah. Periksa koneksi internet lalu coba lagi.", "danger");
+      })
+      .then(function(){
+        els2.fillAddressBtn.disabled = state.rows.length === 0;
+        els2.fillAddressLabel.textContent = "Lengkapi Alamat dari NIK";
+      });
   }
 
-  function escapeHtml(text) {
-    if (!text) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-  }
-
-  // Drag & drop
-  const dropZone = document.getElementById('dropZone');
-  dropZone.addEventListener('click', () => document.getElementById('fileInput').click());
-  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
-  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
-  dropZone.addEventListener('drop', e => {
-    e.preventDefault();
-    dropZone.classList.remove('dragover');
-    handleFiles(e.dataTransfer.files);
+  // ---------------- Delete ----------------
+  els.deleteSelectedBtn.addEventListener("click", function(){
+    if(state.selected.size === 0) return;
+    confirmModal(
+      "Hapus " + state.selected.size + " baris terpilih?",
+      "Tindakan ini tidak bisa dibatalkan.",
+      function(){
+        var toDelete = state.selected;
+        state.rows = state.rows.filter(function(r){ return !toDelete.has(r.__id); });
+        state.selected = new Set();
+        seenKeys = null;
+        saveState();
+        applyFilter();
+        toast(toDelete.size + " baris dihapus");
+      }
+    );
   });
-  document.getElementById('fileInput').addEventListener('change', e => handleFiles(e.target.files));
 
-  // Load initial data from storage
-  loadFromStorage();
+  els.clearAllBtn.addEventListener("click", function(){
+    if(state.rows.length === 0) return;
+    confirmModal(
+      "Hapus semua data (" + state.rows.length + " baris)?",
+      "Semua data yang tersimpan di browser ini akan dihapus permanen.",
+      function(){
+        state.rows = [];
+        state.columns = [];
+        state.selected = new Set();
+        seenKeys = null;
+        try{ localStorage.removeItem(STORAGE_KEY); }catch(e){}
+        renderHeader();
+        applyFilter();
+        toast("Semua data dihapus");
+      }
+    );
+  });
+
+  function confirmModal(title, desc, onConfirm){
+    var overlay = document.createElement("div");
+    overlay.className = "overlay";
+    overlay.innerHTML =
+      '<div class="modal" role="dialog" aria-modal="true">' +
+        '<h3></h3><p></p>' +
+        '<div class="row">' +
+          '<button class="btn" data-act="cancel">Batal</button>' +
+          '<button class="btn btn-danger" data-act="ok" style="background:var(--red);color:#fff;border-color:var(--red)">Hapus</button>' +
+        '</div>' +
+      '</div>';
+    overlay.querySelector("h3").textContent = title;
+    overlay.querySelector("p").textContent = desc;
+    document.body.appendChild(overlay);
+    overlay.addEventListener("click", function(e){
+      if(e.target === overlay || e.target.dataset.act === "cancel"){ overlay.remove(); }
+      if(e.target.dataset.act === "ok"){ overlay.remove(); onConfirm(); }
+    });
+  }
+
+  // ---------------- Search / Filter ----------------
+  var searchDebounce = null;
+  els.search.addEventListener("input", function(){
+    window.clearTimeout(searchDebounce);
+    searchDebounce = window.setTimeout(function(){
+      state.query = els.search.value.trim().toLowerCase();
+      applyFilter();
+    }, 90);
+  });
+
+  function applyFilter(){
+    if(!state.query){
+      state.filtered = state.rows;
+    }else{
+      var q = state.query;
+      state.filtered = state.rows.filter(function(r){ return r.__s.indexOf(q) !== -1; });
+    }
+    state.renderedCount = Math.min(BATCH, state.filtered.length);
+    updateDownloadLabel();
+    renderHeader();
+    renderBody(true);
+    updateToolbarState();
+  }
+
+  function updateDownloadLabel(){
+    if(state.query){
+      els.downloadLabel.textContent = "Unduh Hasil Pencarian (" + state.filtered.length + ")";
+    }else{
+      els.downloadLabel.textContent = "Unduh Semua (" + state.rows.length + ")";
+    }
+  }
+
+  // ---------------- Render ----------------
+  function renderHeader(){
+    if(state.columns.length === 0){
+      els.headRow.innerHTML = "";
+      return;
+    }
+    var html = '<th class="cell-check"><input type="checkbox" id="selectAllChk" aria-label="Pilih semua hasil"></th>';
+    state.columns.forEach(function(col){
+      html += "<th>" + escapeHtml(col) + "</th>";
+    });
+    html += '<th class="cell-actions">Salin</th>';
+    els.headRow.innerHTML = html;
+    var selectAllChk = document.getElementById("selectAllChk");
+    selectAllChk.addEventListener("change", function(){
+      if(selectAllChk.checked){
+        state.filtered.forEach(function(r){ state.selected.add(r.__id); });
+      }else{
+        state.filtered.forEach(function(r){ state.selected.delete(r.__id); });
+      }
+      renderBody(true);
+      updateToolbarState();
+    });
+  }
+
+  function renderBody(fullRedraw){
+    var hasRows = state.rows.length > 0;
+    els.emptyState.style.display = hasRows ? "none" : "flex";
+    els.dataTable.style.display = hasRows ? "table" : "none";
+
+    if(!hasRows){
+      els.bodyRows.innerHTML = "";
+      els.rowCount.textContent = "0";
+      return;
+    }
+
+    els.rowCount.textContent = String(state.rows.length);
+
+    if(fullRedraw){
+      els.bodyRows.innerHTML = "";
+      appendRows(state.filtered.slice(0, state.renderedCount));
+      maybeAppendLoadMore();
+    }
+
+    // sync select-all checkbox tri-state
+    var selectAllChk = document.getElementById("selectAllChk");
+    if(selectAllChk){
+      var total = state.filtered.length;
+      var selCount = 0;
+      state.filtered.forEach(function(r){ if(state.selected.has(r.__id)) selCount++; });
+      selectAllChk.checked = total > 0 && selCount === total;
+      selectAllChk.indeterminate = selCount > 0 && selCount < total;
+    }
+  }
+
+  function appendRows(rows){
+    var frag = document.createDocumentFragment();
+    rows.forEach(function(row){
+      frag.appendChild(buildRowEl(row));
+    });
+    els.bodyRows.appendChild(frag);
+  }
+
+  function buildRowEl(row){
+    var tr = document.createElement("tr");
+    tr.dataset.id = row.__id;
+    if(state.selected.has(row.__id)) tr.classList.add("is-selected");
+
+    var tdChk = document.createElement("td");
+    tdChk.className = "cell-check";
+    var chk = document.createElement("input");
+    chk.type = "checkbox";
+    chk.checked = state.selected.has(row.__id);
+    chk.setAttribute("aria-label", "Pilih baris");
+    chk.addEventListener("change", function(){
+      if(chk.checked){ state.selected.add(row.__id); tr.classList.add("is-selected"); }
+      else{ state.selected.delete(row.__id); tr.classList.remove("is-selected"); }
+      syncSelectAllChk();
+      updateToolbarState();
+    });
+    tdChk.appendChild(chk);
+    tr.appendChild(tdChk);
+
+    state.columns.forEach(function(col){
+      var td = document.createElement("td");
+      var val = row[col] === undefined || row[col] === null ? "" : String(row[col]);
+      if(/nik|kpj/i.test(col)) td.className = "mono";
+      td.innerHTML = highlight(val, state.query);
+      tr.appendChild(td);
+    });
+
+    var tdAct = document.createElement("td");
+    tdAct.className = "cell-actions";
+    var copyBtn = document.createElement("button");
+    copyBtn.className = "copy-btn";
+    copyBtn.title = "Salin baris ini";
+    copyBtn.setAttribute("aria-label", "Salin baris ini");
+    copyBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+    copyBtn.addEventListener("click", function(){ copyRow(row, copyBtn); });
+    tdAct.appendChild(copyBtn);
+    tr.appendChild(tdAct);
+
+    return tr;
+  }
+
+  function syncSelectAllChk(){
+    var selectAllChk = document.getElementById("selectAllChk");
+    if(!selectAllChk) return;
+    var total = state.filtered.length;
+    var selCount = 0;
+    state.filtered.forEach(function(r){ if(state.selected.has(r.__id)) selCount++; });
+    selectAllChk.checked = total > 0 && selCount === total;
+    selectAllChk.indeterminate = selCount > 0 && selCount < total;
+  }
+
+  function maybeAppendLoadMore(){
+    var existing = els.bodyRows.querySelector(".load-more-row");
+    if(existing) existing.remove();
+    if(state.renderedCount >= state.filtered.length) return;
+    var tr = document.createElement("tr");
+    tr.className = "load-more-row";
+    var td = document.createElement("td");
+    td.colSpan = state.columns.length + 2;
+    var remaining = state.filtered.length - state.renderedCount;
+    var btn = document.createElement("button");
+    btn.textContent = "Muat " + Math.min(BATCH, remaining) + " baris lagi (" + remaining + " tersisa)";
+    btn.addEventListener("click", function(){
+      var next = state.filtered.slice(state.renderedCount, state.renderedCount + BATCH);
+      tr.remove();
+      appendRows(next);
+      state.renderedCount += next.length;
+      maybeAppendLoadMore();
+    });
+    td.appendChild(btn);
+    tr.appendChild(td);
+    els.bodyRows.appendChild(tr);
+  }
+
+  // infinite scroll as a convenience alongside the button
+  els.tableWrap.addEventListener("scroll", function(){
+    if(state.renderedCount >= state.filtered.length) return;
+    var nearBottom = els.tableWrap.scrollTop + els.tableWrap.clientHeight > els.tableWrap.scrollHeight - 120;
+    if(nearBottom){
+      var next = state.filtered.slice(state.renderedCount, state.renderedCount + BATCH);
+      if(next.length === 0) return;
+      var lm = els.bodyRows.querySelector(".load-more-row");
+      if(lm) lm.remove();
+      appendRows(next);
+      state.renderedCount += next.length;
+      maybeAppendLoadMore();
+    }
+  });
+
+  function highlight(text, query){
+    var escaped = escapeHtml(text);
+    if(!query) return escaped;
+    var idx = text.toLowerCase().indexOf(query);
+    if(idx === -1) return escaped;
+    // find corresponding index in escaped string is non-trivial with entities;
+    // simplest safe approach: escape then do a case-insensitive replace on escaped text
+    var re = new RegExp("(" + escapeRegExp(escapeHtml(query)) + ")", "ig");
+    return escaped.replace(re, "<mark>$1</mark>");
+  }
+  function escapeRegExp(s){ return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
+  function escapeHtml(s){
+    return String(s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  // ---------------- Copy row ----------------
+  function copyRow(row, btnEl){
+    var parts = state.columns.map(function(col){
+      var v = row[col];
+      return v === undefined || v === null ? "" : String(v);
+    });
+    var text = parts.join("\t");
+    var done = function(){
+      if(btnEl){
+        btnEl.classList.add("copied");
+        btnEl.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+        window.setTimeout(function(){
+          btnEl.classList.remove("copied");
+          btnEl.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+        }, 1300);
+      }
+      toast("Baris disalin ke clipboard");
+    };
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(done, function(){ fallbackCopy(text, done); });
+    }else{
+      fallbackCopy(text, done);
+    }
+  }
+  function fallbackCopy(text, done){
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    try{ document.execCommand("copy"); }catch(e){}
+    document.body.removeChild(ta);
+    done();
+  }
+
+  // ---------------- Download (respects current search) ----------------
+  els.downloadBtn.addEventListener("click", function(){
+    if(state.filtered.length === 0){ toast("Tidak ada data untuk diunduh", "danger"); return; }
+    var plainRows = state.filtered.map(function(r){
+      var obj = {};
+      state.columns.forEach(function(c){ obj[c] = r[c] === undefined ? "" : r[c]; });
+      return obj;
+    });
+    var ws = XLSX.utils.json_to_sheet(plainRows, { header: state.columns });
+    var wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Data");
+    var stamp = new Date().toISOString().slice(0,10);
+    var suffix = state.query ? "hasil-pencarian" : "semua-data";
+    XLSX.writeFile(wb, "data-layak-" + suffix + "-" + stamp + ".xlsx");
+    toast("Mengunduh " + plainRows.length + " baris");
+  });
+
+  // ---------------- Toolbar state ----------------
+  function updateToolbarState(){
+    var hasRows = state.rows.length > 0;
+    els.downloadBtn.disabled = state.filtered.length === 0;
+    els.clearAllBtn.disabled = !hasRows;
+    if(els2.fillAddressLabel.textContent === "Lengkapi Alamat dari NIK"){
+      els2.fillAddressBtn.disabled = !hasRows;
+    }
+    els.deleteSelectedBtn.disabled = state.selected.size === 0;
+    els.deleteSelectedLabel.textContent = state.selected.size > 0
+      ? "Hapus Terpilih (" + state.selected.size + ")"
+      : "Hapus Terpilih";
+    updateDownloadLabel();
+  }
+
+  // ---------------- Init ----------------
+  try{
+    if(window.self !== window.top){
+      var pw = document.getElementById("previewWarning");
+      if(pw) pw.style.display = "flex";
+    }
+  }catch(e){
+    // cross-origin access to window.top throws => definitely embedded/sandboxed
+    var pw2 = document.getElementById("previewWarning");
+    if(pw2) pw2.style.display = "flex";
+  }
+  loadState();
+  renderHeader();
+  applyFilter();
+  if(state.rows.length > 0){
+    toast(state.rows.length + " baris dimuat dari penyimpanan browser");
+  }
 })();
 </script>
 </body>
