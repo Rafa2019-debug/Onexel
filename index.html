@@ -624,17 +624,23 @@
     return name;
   }
 
-  function fetchJSON(url){
+  var lastFetchError = null;
+  function fetchJSON(url, attempt){
+    attempt = attempt || 1;
     var timeout = new Promise(function(_, reject){
-      window.setTimeout(function(){ reject(new Error("timeout")); }, 10000);
+      window.setTimeout(function(){ reject(new Error("Waktu tunggu habis (koneksi lambat)")); }, 20000);
     });
     return Promise.race([
-      fetch(url).then(function(res){
-        if(!res.ok) throw new Error("HTTP " + res.status);
+      fetch(url, { cache: "force-cache" }).then(function(res){
+        if(!res.ok) throw new Error("Server balas HTTP " + res.status);
         return res.json();
       }),
       timeout
     ]).catch(function(err){
+      if(attempt < 2){
+        return fetchJSON(url, attempt + 1);
+      }
+      lastFetchError = (err && err.message) ? err.message : String(err);
       console.error("Gagal memuat", url, err);
       throw err;
     });
@@ -660,9 +666,11 @@
     });
   }
 
-  function batchRun(ids, worker, concurrency){
+  function batchRun(ids, worker, concurrency, onProgress){
     var queue = ids.slice();
     var active = 0;
+    var done = 0;
+    var total = ids.length;
     return new Promise(function(resolve){
       var results = { ok: 0, fail: 0 };
       function next(){
@@ -671,7 +679,11 @@
           var id = queue.shift();
           active++;
           worker(id).then(function(){ results.ok++; }, function(){ results.fail++; })
-            .then(function(){ active--; next(); });
+            .then(function(){
+              active--; done++;
+              if(onProgress) onProgress(done, total);
+              next();
+            });
         }
       }
       next();
@@ -710,6 +722,7 @@
     els2.fillAddressBtn.disabled = true;
     els2.fillAddressLabel.textContent = "Memproses…";
     toast("Mengambil data wilayah untuk " + targets.length + " baris…");
+    lastFetchError = null;
 
     var provinceIds = {}, regencyIds = {};
     targets.forEach(function(r){
@@ -717,9 +730,24 @@
       provinceIds[nik.slice(0,2)] = true;
       regencyIds[nik.slice(0,4)] = true;
     });
+    var provinceIdList = Object.keys(provinceIds);
+    var regencyIdList = Object.keys(regencyIds);
+    var totalSteps = provinceIdList.length + regencyIdList.length;
 
-    batchRun(Object.keys(provinceIds), getRegencies, 6)
-      .then(function(){ return batchRun(Object.keys(regencyIds), getDistricts, 6); })
+    function updateProgress(done){
+      els2.fillAddressLabel.textContent = "Memproses… (" + done + "/" + totalSteps + ")";
+    }
+
+    var stepsDone = 0;
+    batchRun(provinceIdList, getRegencies, 3, function(d){
+        updateProgress(stepsDone + d);
+      })
+      .then(function(){
+        stepsDone = provinceIdList.length;
+        return batchRun(regencyIdList, getDistricts, 3, function(d){
+          updateProgress(stepsDone + d);
+        });
+      })
       .then(function(){
         var filledKab = 0, filledKec = 0, noMatch = 0;
         targets.forEach(function(r){
@@ -746,7 +774,9 @@
 
         var msg;
         if(filledKab === 0 && filledKec === 0){
-          msg = "Tidak ada data wilayah yang berhasil diambil. Pastikan file ini dibuka langsung di browser (bukan pratinjau di dalam Claude) dan perangkat terhubung ke internet.";
+          msg = "Tidak ada data wilayah yang berhasil diambil";
+          if(lastFetchError) msg += " (" + lastFetchError + ")";
+          msg += ". Coba lagi, atau periksa koneksi internet perangkat.";
           toast(msg, "danger");
         }else{
           msg = "Kab/Kota terisi: " + filledKab + ", Kecamatan terisi: " + filledKec + " (dari " + targets.length + " baris diperiksa). Kelurahan tidak bisa diisi dari NIK.";
